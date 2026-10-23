@@ -74,6 +74,10 @@ public static class ExecutableAssessor
             case SignatureState.Valid:
                 f.AddIndicator("SIG_VALID", $"Gültig signiert von \"{info.Signer}\"", -25);
                 break;
+            // Skripte, Verknuepfungen und Abbilder werden praktisch nie signiert – fehlende Signatur ist dort kein Indiz.
+            case SignatureState.NotSigned when !IsBinary(fileName):
+                f.AddIndicator("SIG_NONE_SCRIPT", "Nicht signiert (bei Skripten/Verknüpfungen üblich)", 0);
+                break;
             case SignatureState.NotSigned:
                 f.AddIndicator("SIG_NONE", "Datei ist nicht digital signiert", LocationClassifier.IsUserWritable(loc) ? 25 : 15);
                 break;
@@ -89,6 +93,8 @@ public static class ExecutableAssessor
         {
             // Signierte Software in AppData (Discord, Teams, VS Code ...) ist normal – Gewicht reduzieren.
             if (info.Signature == SignatureState.Valid) locWeight /= 3;
+            // Skripte/Verknuepfungen liegen oft legitim in Temp/AppData – Ort allein zaehlt dort weniger.
+            else if (!IsBinary(fileName)) locWeight /= 2;
             if (locWeight > 0)
                 f.AddIndicator("LOC_" + loc.ToString().ToUpperInvariant(), "Datei " + LocationClassifier.Describe(loc), locWeight);
         }
@@ -140,7 +146,7 @@ public static class ExecutableAssessor
             f.AddIndicator("NO_METADATA", "Keine Herstellerangaben in der Datei", 10);
 
         // --- Frisch erstellt ---
-        if (info.Signature != SignatureState.Valid && info.Created is { } created && (DateTime.Now - created).TotalDays < 7)
+        if (info.Signature != SignatureState.Valid && IsBinary(fileName) && info.Created is { } created && (DateTime.Now - created).TotalDays < 7)
             f.AddIndicator("RECENT", $"Erst kürzlich erstellt ({created:g})", 8);
 
         // --- Bekannte Werkzeuge ---
@@ -192,6 +198,10 @@ public static class ExecutableAssessor
         if (!info.IsWindowsComponent && !info.IsMicrosoftSigned && !f.Actions.Any(a => a.Kind == RemediationKind.QuarantineFile))
             f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantäne verschieben", Target = info.Path });
     }
+
+    /// <summary>Programmdateien, bei denen eine Signatur zu erwarten ist.</summary>
+    public static bool IsBinary(string fileName) =>
+        Path.GetExtension(fileName).ToLowerInvariant() is ".exe" or ".dll" or ".sys" or ".scr" or ".com" or ".cpl" or ".ocx" or ".msi" or ".pif" or ".drv" or ".efi";
 
     private static bool PathIsExecutable(string fileName) =>
         Util.PathUtil.LooksExecutable(fileName) && !fileName.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase);

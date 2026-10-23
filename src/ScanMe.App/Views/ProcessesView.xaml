@@ -39,22 +39,22 @@
             <Border Style="{StaticResource Card}" Padding="0">
                 <DataGrid ItemsSource="{Binding View}" SelectedItem="{Binding Selected}">
                     <DataGrid.Columns>
-                        <DataGridTemplateColumn Header="" Width="10">
+                        <DataGridTemplateColumn Header="" Width="26" SortMemberPath="Score">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Ellipse Width="8" Height="8" Fill="{Binding Severity, Converter={StaticResource SevBrush}}" />
+                                    <Ellipse Width="9" Height="9" Fill="{Binding Severity, Converter={StaticResource SevBrush}}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="190" />
-                        <DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="60" />
-                        <DataGridTextColumn Header="Risiko" Binding="{Binding Score}" Width="60" />
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="210" />
+                        <DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="72" />
+                        <DataGridTextColumn Header="Risiko" Binding="{Binding Score}" Width="70" />
                         <DataGridTextColumn Header="Herausgeber" Binding="{Binding Publisher}" Width="190" />
-                        <DataGridTextColumn Header="CPU %" Binding="{Binding Cpu}" Width="60" />
-                        <DataGridTextColumn Header="RAM" Binding="{Binding RamText}" Width="80" SortMemberPath="Ram" />
-                        <DataGridTextColumn Header="Fenster" Binding="{Binding WindowText}" Width="80" />
-                        <DataGridTextColumn Header="Internet" Binding="{Binding Connections}" Width="64" />
-                        <DataGridTextColumn Header="Pfad" Binding="{Binding Path}" Width="*" />
+                        <DataGridTextColumn Header="CPU %" Binding="{Binding Cpu}" Width="70" />
+                        <DataGridTextColumn Header="RAM" Binding="{Binding RamText}" Width="92" SortMemberPath="Ram" />
+                        <DataGridTextColumn Header="Fenster" Binding="{Binding WindowText}" Width="96" />
+                        <DataGridTextColumn Header="Internet" Binding="{Binding Connections}" Width="80" />
+                        <DataGridTextColumn Header="Pfad" Binding="{Binding Path}" Width="360" />
                     </DataGrid.Columns>
                 </DataGrid>
             </Border>

@@ -23,8 +23,11 @@ public sealed partial class MainViewModel : ObservableObject
         Processes = new ProcessesViewModel();
         Quarantine = new QuarantineViewModel();
         SettingsPage = new SettingsViewModel(this);
+        Monitor = new MonitorViewModel(this);
         _currentPage = Dashboard;
     }
+
+    public MonitorViewModel Monitor { get; }
 
     public AppSettings Settings { get; }
     public DashboardViewModel Dashboard { get; }
@@ -51,6 +54,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             "Findings" => Findings,
             "Processes" => Processes,
+            "Monitor" => Monitor,
             "Quarantine" => Quarantine,
             "Settings" => SettingsPage,
             _ => Dashboard,
@@ -63,6 +67,12 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Findings.SelectedItem = item;
         Navigate("Findings");
+    }
+
+    public void ShowMonitorEvent(FindingItemViewModel item)
+    {
+        Monitor.Selected = Monitor.Events.FirstOrDefault(e => e.Item == item);
+        Navigate("Monitor");
     }
 
     private bool CanScan() => !IsScanning;

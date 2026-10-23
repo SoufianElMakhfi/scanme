@@ -38,10 +38,29 @@ for (int i = 0; i < args.Length; i++)
     }
 }
 
-var scanners = ScannerCatalog.CreateAll().Where(s => only.Count == 0 || only.Contains(s.Id)).ToList();
-var engine = new ScanEngine(scanners);
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+
+// Echtzeitueberwachung: --monitor [sekunden]
+if (args.Contains("--monitor", StringComparer.OrdinalIgnoreCase))
+{
+    int seconds = args.SkipWhile(a => !a.Equals("--monitor", StringComparison.OrdinalIgnoreCase)).Skip(1).Select(a => int.TryParse(a, out var s) ? s : 0).FirstOrDefault();
+    using var monitor = new ScanMe.Core.Monitoring.RealtimeMonitor();
+    monitor.Detected += e =>
+    {
+        if (e.Finding.Severity < minSeverity) return;
+        Console.WriteLine($"{e.Time:HH:mm:ss} [{e.Finding.Severity.German(),-8} {e.Finding.Score,3}] {e.Kind}: {e.Finding.Title}");
+        foreach (var i in e.Finding.Indicators.Where(i => i.Weight > 0)) Console.WriteLine($"           +{i.Weight,3} {i.Text}");
+    };
+    monitor.StatusChanged += s => Console.WriteLine("» " + s);
+    monitor.Start();
+    Console.WriteLine(seconds > 0 ? $"Überwache {seconds} s …" : "Überwache – Strg+C zum Beenden.");
+    try { await Task.Delay(seconds > 0 ? TimeSpan.FromSeconds(seconds) : Timeout.InfiniteTimeSpan, cts.Token); } catch (OperationCanceledException) { }
+    return 0;
+}
+
+var scanners = ScannerCatalog.CreateAll().Where(s => only.Count == 0 || only.Contains(s.Id)).ToList();
+var engine = new ScanEngine(scanners);
 
 var progress = new Progress<ScanProgress>(p =>
 {

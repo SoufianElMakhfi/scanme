@@ -7,7 +7,12 @@
     <AssemblyName>ScanMe</AssemblyName>
     <RootNamespace>ScanMe.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\scanme.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\scanme.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ScanMe.Core\ScanMe.Core.csproj" />

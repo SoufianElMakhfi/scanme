@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:ScanMe.App.ViewModels"
         xmlns:views="clr-namespace:ScanMe.App.Views"
-        Title="ScanMe – Blue Team" Height="860" Width="1380" MinHeight="640" MinWidth="1080"
-        Background="{StaticResource BgBrush}" WindowStartupLocation="CenterScreen"
+        Title="ScanMe – Blue Team" Height="860" Width="1380" MinHeight="640" MinWidth="1080" Icon="Assets/scanme.ico"
+        Background="{StaticResource BgBrush}" Foreground="{StaticResource TextBrush}" WindowStartupLocation="CenterScreen"
         TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
 
     <Window.Resources>
@@ -13,6 +13,7 @@
         <DataTemplate DataType="{x:Type vm:ProcessesViewModel}"><views:ProcessesView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:QuarantineViewModel}"><views:QuarantineView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:MonitorViewModel}"><views:MonitorView /></DataTemplate>
     </Window.Resources>
 
     <Grid Background="{StaticResource BgBrush}">
@@ -48,11 +49,19 @@
                                  Command="{Binding NavigateCommand}" CommandParameter="Dashboard" x:Name="NavDashboard" />
                     <RadioButton Style="{StaticResource NavButton}" Content="Funde" GroupName="nav"
                                  Command="{Binding NavigateCommand}" CommandParameter="Findings" x:Name="NavFindings" />
-                    <RadioButton Style="{StaticResource NavButton}" Content="Prozesse (live)" GroupName="nav"
+                    <RadioButton Style="{StaticResource NavButton}" Content="Prozesse (live)" GroupName="nav" x:Name="NavProcesses"
                                  Command="{Binding NavigateCommand}" CommandParameter="Processes" />
-                    <RadioButton Style="{StaticResource NavButton}" Content="Quarantäne &amp; Verlauf" GroupName="nav"
+                    <RadioButton Style="{StaticResource NavButton}" GroupName="nav" x:Name="NavMonitor"
+                                 Command="{Binding NavigateCommand}" CommandParameter="Monitor">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Echtzeitüberwachung" />
+                            <Ellipse Width="8" Height="8" Margin="8,0,0,0" Fill="{StaticResource GoodBrush}"
+                                     Visibility="{Binding Monitor.IsRunning, Converter={StaticResource Vis}}" />
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource NavButton}" Content="Quarantäne &amp; Verlauf" GroupName="nav" x:Name="NavQuarantine"
                                  Command="{Binding NavigateCommand}" CommandParameter="Quarantine" />
-                    <RadioButton Style="{StaticResource NavButton}" Content="Einstellungen" GroupName="nav"
+                    <RadioButton Style="{StaticResource NavButton}" Content="Einstellungen" GroupName="nav" x:Name="NavSettings"
                                  Command="{Binding NavigateCommand}" CommandParameter="Settings" />
                 </StackPanel>
             </DockPanel>

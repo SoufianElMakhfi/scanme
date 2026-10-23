@@ -43,7 +43,8 @@ public partial class App : Application
         if (page != null)
         {
             vm.NavigateCommand.Execute(page);
-            if (page == "Processes") await vm.Processes.RefreshCommand.ExecuteAsync(null);
+            if (page == "Processes")
+                while (vm.Processes.IsLoading || vm.Processes.Rows.Count == 0) await Task.Delay(200);
         }
         await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
         await Task.Delay(500);
