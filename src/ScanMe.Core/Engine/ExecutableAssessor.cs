@@ -1,0 +1,173 @@
+using ScanMe.Core.Knowledge;
+using ScanMe.Core.Models;
+using ScanMe.Core.Trust;
+
+namespace ScanMe.Core.Engine;
+
+/// <summary>
+/// Einheitliche Bewertung einer ausfuehrbaren Datei. Wird von Prozess-, Autostart-, Dienst-,
+/// Treiber- und Dateiscanner verwendet, damit ueberall dieselben Massstaebe gelten.
+/// </summary>
+public static class ExecutableAssessor
+{
+    /// <summary>Originalnamen von Windows-Werkzeugen, die Angreifer gern umbenannt mitbringen.</summary>
+    private static readonly HashSet<string> RenameSensitive = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "powershell.exe", "pwsh.dll", "cmd.exe", "rundll32.exe", "regsvr32.exe", "mshta.exe", "wscript.exe",
+        "cscript.exe", "certutil.exe", "bitsadmin.exe", "wmic.exe", "msbuild.exe", "installutil.exe",
+        "psexec.exe", "procdump.exe", "nc.exe", "AutoIt3.exe", "AutoHotkey.exe",
+    };
+
+    private static readonly string[] DocumentExtensions =
+        [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".jpg", ".jpeg", ".png", ".gif", ".mp3", ".mp4", ".zip", ".rar", ".rtf", ".csv"];
+
+    public static FileTrustInfo Assess(Finding f, string? path, FileTrustService trust, bool addActions = true)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            f.AddIndicator("NO_PATH", "Kein Dateipfad ermittelbar", 5);
+            return new FileTrustInfo { Path = "", Exists = false };
+        }
+
+        var info = trust.Get(path);
+        f.FilePath ??= info.Path;
+
+        if (!info.Exists)
+        {
+            f.AddIndicator("FILE_MISSING", "Die referenzierte Datei existiert nicht (verwaister Eintrag oder geloeschte Malware)", 10);
+            return info;
+        }
+
+        f.Sha256 ??= info.Sha256;
+        string fileName = Path.GetFileName(info.Path);
+        var loc = LocationClassifier.Classify(info.Path);
+
+        // --- Signatur ---
+        switch (info.Signature)
+        {
+            case SignatureState.Valid when info.IsWindowsComponent:
+                f.IsProtected = true;
+                f.AddIndicator("SIG_WINDOWS", "Verifizierte Windows-Komponente (Microsoft-signiert, Windows-Verzeichnis)", -60);
+                break;
+            case SignatureState.Valid when info.IsMicrosoftSigned:
+                f.AddIndicator("SIG_MICROSOFT", "Gueltig von Microsoft signiert", -40);
+                break;
+            case SignatureState.Valid:
+                f.AddIndicator("SIG_VALID", $"Gueltig signiert von \"{info.Signer}\"", -25);
+                break;
+            case SignatureState.NotSigned:
+                f.AddIndicator("SIG_NONE", "Datei ist nicht digital signiert", LocationClassifier.IsUserWritable(loc) ? 25 : 15);
+                break;
+            case SignatureState.Invalid:
+                bool tampered = info.SignatureStatusText.Contains("manipuliert");
+                f.AddIndicator("SIG_INVALID", $"Ungueltige Signatur: {info.SignatureStatusText}", tampered ? 60 : 40);
+                break;
+        }
+
+        // --- Speicherort ---
+        int locWeight = LocationClassifier.Weight(loc);
+        if (locWeight > 0 && !info.IsWindowsComponent)
+        {
+            // Signierte Software in AppData (Discord, Teams, VS Code ...) ist normal – Gewicht reduzieren.
+            if (info.Signature == SignatureState.Valid) locWeight /= 3;
+            if (locWeight > 0)
+                f.AddIndicator("LOC_" + loc.ToString().ToUpperInvariant(), "Datei " + LocationClassifier.Describe(loc), locWeight);
+        }
+
+        // --- Herkunft ---
+        if (info.FromInternet)
+        {
+            f.AddIndicator("MOTW", "Aus dem Internet heruntergeladen" + (info.DownloadUrl != null ? $" ({info.DownloadUrl})" : ""),
+                info.Signature == SignatureState.Valid ? 0 : 10);
+        }
+
+        // --- Doppelte Endung (rechnung.pdf.exe) ---
+        string withoutExt = Path.GetFileNameWithoutExtension(fileName);
+        if (DocumentExtensions.Any(e => withoutExt.EndsWith(e, StringComparison.OrdinalIgnoreCase)) && PathIsExecutable(fileName))
+            f.AddIndicator("DOUBLE_EXT", $"Doppelte Dateiendung \"{fileName}\" – typische Phishing-Tarnung", 50);
+
+        // --- Unicode Right-to-Left-Override im Namen (gnp.exe -> exe.png) ---
+        if (fileName.Contains('‮'))
+            f.AddIndicator("RTLO", "Dateiname enthaelt ein unsichtbares Umkehrzeichen (RTLO) zur Tarnung der Endung", 60);
+
+        // --- Systemprozess-Imitation ---
+        var lookalike = SystemProcesses.FindLookalike(fileName);
+        if (lookalike != null)
+            f.AddIndicator("LOOKALIKE", $"Name ahmt den Windows-Prozess \"{lookalike}\" nach", 50);
+
+        var profile = SystemProcesses.Get(fileName);
+        if (profile != null && profile.ExpectedDirs.Length > 0 && !info.IsWindowsComponent
+            && !profile.ExpectedDirs.Any(d => string.Equals(Path.GetDirectoryName(info.Path), d, StringComparison.OrdinalIgnoreCase)))
+        {
+            f.AddIndicator("MASQUERADE", $"Traegt den Namen eines Windows-Systemprozesses, liegt aber nicht in {string.Join(" / ", profile.ExpectedDirs)}", 70);
+        }
+
+        // --- Umbenanntes Systemwerkzeug ---
+        if (info.OriginalFilename != null)
+        {
+            string orig = info.OriginalFilename.Replace(".mui", "", StringComparison.OrdinalIgnoreCase);
+            if (RenameSensitive.Contains(orig) && !orig.Equals(fileName, StringComparison.OrdinalIgnoreCase))
+                f.AddIndicator("RENAMED_TOOL", $"Umbenanntes Werkzeug: eigentlich \"{orig}\", hier als \"{fileName}\"", 45);
+        }
+
+        // --- Fehlende Metadaten ---
+        if (info.Signature != SignatureState.Valid && info.CompanyName == null && info.FileDescription == null && fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            f.AddIndicator("NO_METADATA", "Keine Herstellerangaben in der Datei", 10);
+
+        // --- Frisch erstellt ---
+        if (info.Signature != SignatureState.Valid && info.Created is { } created && (DateTime.Now - created).TotalDays < 7)
+            f.AddIndicator("RECENT", $"Erst kuerzlich erstellt ({created:g})", 8);
+
+        // --- Bekannte Werkzeuge ---
+        var tool = KnownTools.FindByProcessName(fileName);
+        if (tool != null)
+        {
+            int w = tool.Kind switch
+            {
+                KnownTools.ToolKind.HackTool => 60,
+                KnownTools.ToolKind.Miner => 55,
+                KnownTools.ToolKind.Tunnel => 35,
+                _ => 30,
+            };
+            f.AddIndicator("TOOL_" + tool.Kind.ToString().ToUpperInvariant(), $"{KnownTools.KindText(tool.Kind)}: {tool.Name}. {tool.Note}", w);
+        }
+
+        AddDetails(f, info);
+        if (addActions) AddFileActions(f, info);
+        return info;
+    }
+
+    public static void AddDetails(Finding f, FileTrustInfo info)
+    {
+        f.Detail("Datei", info.Path)
+         .Detail("Signatur", info.SignatureStatusText)
+         .Detail("Signiert von", info.Signer)
+         .Detail("Hersteller", info.CompanyName)
+         .Detail("Produkt", info.ProductName)
+         .Detail("Beschreibung", info.FileDescription)
+         .Detail("Version", info.FileVersion)
+         .Detail("Originalname", info.OriginalFilename)
+         .Detail("SHA256", info.Sha256)
+         .Detail("Groesse", info.Exists ? Util.TextUtil.FormatBytes(info.Size) : null)
+         .Detail("Erstellt", info.Created?.ToString("g"))
+         .Detail("Geaendert", info.Modified?.ToString("g"))
+         .Detail("Download-Quelle", info.DownloadUrl)
+         .Detail("Download-Referrer", info.DownloadReferrer);
+    }
+
+    public static void AddFileActions(Finding f, FileTrustInfo info)
+    {
+        if (!info.Exists) return;
+        if (!f.Actions.Any(a => a.Kind == RemediationKind.OpenLocation))
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort oeffnen", Target = info.Path, RequiresConfirmation = false });
+        if (info.Sha256 != null && !f.Actions.Any(a => a.Kind == RemediationKind.LookupOnline))
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.LookupOnline, Label = "Auf VirusTotal pruefen", Target = info.Sha256, RequiresConfirmation = false });
+        if (!f.Actions.Any(a => a.Kind == RemediationKind.DefenderScanFile))
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.DefenderScanFile, Label = "Mit Defender scannen", Target = info.Path, RequiresConfirmation = false });
+        if (!info.IsWindowsComponent && !info.IsMicrosoftSigned && !f.Actions.Any(a => a.Kind == RemediationKind.QuarantineFile))
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantaene verschieben", Target = info.Path });
+    }
+
+    private static bool PathIsExecutable(string fileName) =>
+        Util.PathUtil.LooksExecutable(fileName) && !fileName.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase);
+}
