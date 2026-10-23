@@ -377,12 +377,15 @@
     <!-- ===== Listen ===== -->
     <Style x:Key="CleanList" TargetType="ListBox">
         <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
         <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
         <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
     </Style>
     <Style x:Key="CleanListItem" TargetType="ListBoxItem">
+        <!-- ListBoxItem setzt sonst die Windows-Standardfarbe (schwarz) und bricht die Vererbung -->
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Margin" Value="0,0,0,6" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
