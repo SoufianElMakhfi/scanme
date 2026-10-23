@@ -13,6 +13,10 @@ public static class ScannerCatalog
         new SecurityConfigScanner(),
         new AccountScanner(),
         new SoftwareScanner(),
+        new BrowserScanner(),
+        new DriverScanner(),
+        new EventLogScanner(),
+        new CompatibilityScanner(),
         new FileSystemScanner(),
         // Muss zuletzt laufen: vertieft die Funde aller anderen Scanner.
         new MalwareScanner(),

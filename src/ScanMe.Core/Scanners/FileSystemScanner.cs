@@ -48,6 +48,9 @@ public sealed partial class FileSystemScanner : IScanner
         "Riot Games", "Battle.net", "Microsoft SDKs", "Windows Kits", "Unity", "Adobe", "Mozilla", "Google", "BraveSoftware",
         "Microsoft\\Edge", "CrashDumps", "D3DSCache", "NVIDIA", "NVIDIA Corporation", "AMD", "Intel", "assembly", "Microsoft.NET",
         "dotnet", "Python", "conda", "anaconda3", "miniconda3", ".vscode", ".cursor", "Postman", "go", "cargo", ".rustup", "gradle",
+        // Grosse Microsoft-Caches unter AppData\Local\Microsoft (der Rest wird geprueft – Malware tarnt sich dort gern)
+        "Edge", "OneDrive", "Teams", "Office", "Outlook", "INetCache", "WebCache", "Explorer", "Caches", "Notifications",
+        "Feeds Cache", "PlayReady", "Terminal Server Client", "WindowsApps", "Media Player",
     };
 
     [GeneratedRegex(@"(readme|read_me|how_to|howto|decrypt|restore|recover|instruction|!!!|_help_|help_decrypt|unlock).*\.(txt|html?|hta|rtf)$", RegexOptions.IgnoreCase)]
@@ -135,7 +138,7 @@ public sealed partial class FileSystemScanner : IScanner
                     if (SkipDirs.Contains(d.Name)) continue;
                     if (d.FullName.Equals(Path.Combine(PathUtil.ProgramData, "Microsoft"), StringComparison.OrdinalIgnoreCase)) continue;
                     // Temp und Roaming werden separat mit eigener Tiefe gescannt
-                    if (dir.EndsWith(@"AppData\Local", StringComparison.OrdinalIgnoreCase) && d.Name is "Temp" or "Programs" or "Microsoft") continue;
+                    if (dir.EndsWith(@"AppData\Local", StringComparison.OrdinalIgnoreCase) && d.Name is "Temp" or "Programs") continue;
                     bool hidden = (d.Attributes & FileAttributes.Hidden) != 0;
                     stack.Push((d.FullName, depth + 1, hiddenParent || hidden));
                 }
