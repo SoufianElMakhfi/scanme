@@ -67,6 +67,7 @@ public sealed class ProcessScanner : IScanner
             ctx.ThrowIfCancelled();
             if (++i % 20 == 0) ctx.Status($"Prüfe Prozess {i}/{snap.Processes.Count}: {p.Name}");
             if (SystemProcesses.IsKernelPseudoProcess(p.Name, p.Pid)) continue;
+            if (p.Pid == Environment.ProcessId) continue; // ScanMe meldet sich nicht selbst
 
             var f = AnalyzeProcess(ctx, snap, p, instanceCounts);
             if (f == null) continue;

@@ -159,6 +159,9 @@ public sealed partial class FileSystemScanner : IScanner
         string ext = fi.Extension;
         string name = fi.Name;
 
+        // ScanMe selbst (unsigniert) nicht als verdaechtig melden
+        if (fi.FullName.Equals(Environment.ProcessPath, StringComparison.OrdinalIgnoreCase)) return;
+
         // $I-Dateien im Papierkorb sind nur Metadaten (Originalname/-pfad), keine Programme
         if (name.StartsWith("$I", StringComparison.Ordinal) && fi.FullName.Contains(@"\$Recycle.Bin\", StringComparison.OrdinalIgnoreCase)) return;
 

@@ -200,21 +200,27 @@ public sealed partial class PersistenceScanner
             if (hasSd && hasFile) continue;
             if (hasSd && !ctx.IsElevated) continue;
 
+            // Windows-eigene Aufgaben ohne Datei sind meist Reste von Updates (inaktiv, ohne Programm) – kein Angriffsindiz.
+            bool orphanedWindowsTask = hasSd && rel.StartsWith(@"Microsoft\Windows\", StringComparison.OrdinalIgnoreCase);
             var f = new Finding
             {
                 ScannerId = Id,
                 Category = FindingCategory.Persistence,
-                Title = $"Versteckte geplante Aufgabe: {rel}",
+                Title = orphanedWindowsTask ? $"Verwaiste Windows-Aufgabe: {rel}" : $"Versteckte geplante Aufgabe: {rel}",
                 Location = key,
                 Description = !hasSd
                     ? $"Die Aufgabe \"{rel}\" existiert in der Registry, ihr Sicherheitsdeskriptor wurde jedoch entfernt. Sie ist dadurch in der Aufgabenplanung unsichtbar."
                     : $"Die Aufgabe \"{rel}\" ist in der Registry registriert, die zugehörige Aufgabendatei fehlt.",
-                Explanation = "Das gezielte Verstecken geplanter Aufgaben ist eine bekannte Technik staatlicher Angreifergruppen (z. B. 'Tarrask' der Gruppe HAFNIUM). " +
-                              "Legitime Software macht das nicht.",
-                Recommendation = "Aufgabe untersuchen (Registry-Schluessel TaskCache\\Tasks\\" + id + "), zugehörige Programme in Quarantäne verschieben und den PC gründlich prüfen.",
+                Explanation = orphanedWindowsTask
+                    ? "Ein Überbleibsel einer Windows-eigenen Aufgabe, meist nach einem Windows-Update. Ohne Aufgabendatei wird nichts ausgeführt – harmlos."
+                    : "Das gezielte Verstecken geplanter Aufgaben ist eine bekannte Technik staatlicher Angreifergruppen (z. B. 'Tarrask' der Gruppe HAFNIUM). " +
+                      "Legitime Software macht das nicht.",
+                Recommendation = orphanedWindowsTask
+                    ? "Keine Aktion nötig. Bei Bedarf als 'Ignorieren' markieren."
+                    : "Aufgabe untersuchen (Registry-Schlüssel TaskCache\\Tasks\\" + id + "), zugehörige Programme in Quarantäne verschieben und den PC gründlich prüfen.",
             };
             f.AddIndicator(hasSd ? "TASK_NO_FILE" : "TASK_NO_SD",
-                hasSd ? "Aufgabe ohne Aufgabendatei" : "Aufgabe ohne Sicherheitsdeskriptor (bewusst versteckt)", hasSd ? 25 : 80);
+                hasSd ? "Aufgabe ohne Aufgabendatei" : "Aufgabe ohne Sicherheitsdeskriptor (bewusst versteckt)", orphanedWindowsTask ? 5 : hasSd ? 25 : 80);
             f.Detail("Task-ID", id).Detail("Registry", key);
             ctx.Add(f);
         }
