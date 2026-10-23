@@ -9,5 +9,8 @@ public static class ScannerCatalog
     [
         new ProcessScanner(),
         new PersistenceScanner(),
+        new NetworkScanner(),
+        new SecurityConfigScanner(),
+        new AccountScanner(),
     ];
 }
