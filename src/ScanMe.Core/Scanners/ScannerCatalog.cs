@@ -8,5 +8,6 @@ public static class ScannerCatalog
     public static IReadOnlyList<IScanner> CreateAll() =>
     [
         new ProcessScanner(),
+        new PersistenceScanner(),
     ];
 }

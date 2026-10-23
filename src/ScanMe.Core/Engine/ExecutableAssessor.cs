@@ -18,6 +18,18 @@ public static class ExecutableAssessor
         "psexec.exe", "procdump.exe", "nc.exe", "AutoIt3.exe", "AutoHotkey.exe",
     };
 
+    /// <summary>Windows-eigene Programme, die beliebigen Code ausfuehren koennen ("Living off the Land").</summary>
+    public static readonly HashSet<string> LolBins = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "powershell.exe", "powershell_ise.exe", "pwsh.exe", "cmd.exe", "wscript.exe", "cscript.exe", "mshta.exe",
+        "rundll32.exe", "regsvr32.exe", "msiexec.exe", "certutil.exe", "bitsadmin.exe", "wmic.exe", "conhost.exe",
+        "forfiles.exe", "msbuild.exe", "installutil.exe", "regasm.exe", "regsvcs.exe", "cmstp.exe", "hh.exe",
+        "msxsl.exe", "odbcconf.exe", "pcalua.exe", "scriptrunner.exe", "schtasks.exe", "reg.exe", "curl.exe",
+        "bash.exe", "wsl.exe", "msdt.exe", "control.exe", "infdefaultinstall.exe", "mavinject.exe",
+    };
+
+    private const char RightToLeftOverride = (char)0x202E;
+
     private static readonly string[] DocumentExtensions =
         [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".jpg", ".jpeg", ".png", ".gif", ".mp3", ".mp4", ".zip", ".rar", ".rtf", ".csv"];
 
@@ -45,6 +57,13 @@ public static class ExecutableAssessor
         // --- Signatur ---
         switch (info.Signature)
         {
+            // Skript-Hosts/LOLBins sind selbst harmlos – entscheidend ist, WAS sie ausfuehren.
+            // Ohne diese Ausnahme wuerde die Microsoft-Signatur boesartige Kommandozeilen "neutralisieren".
+            case SignatureState.Valid when info.IsWindowsComponent && LolBins.Contains(fileName):
+                // Nicht IsProtected: ein boesartiger PowerShell-Prozess darf beendet werden.
+                // Die Datei selbst schuetzt AddFileActions (keine Quarantaene fuer Microsoft-Dateien).
+                f.AddIndicator("SIG_WINDOWS_HOST", $"Windows-Werkzeug {fileName} (selbst harmlos – bewertet wird der ausgefuehrte Befehl)", 0);
+                break;
             case SignatureState.Valid when info.IsWindowsComponent:
                 f.IsProtected = true;
                 f.AddIndicator("SIG_WINDOWS", "Verifizierte Windows-Komponente (Microsoft-signiert, Windows-Verzeichnis)", -60);
@@ -87,7 +106,7 @@ public static class ExecutableAssessor
             f.AddIndicator("DOUBLE_EXT", $"Doppelte Dateiendung \"{fileName}\" – typische Phishing-Tarnung", 50);
 
         // --- Unicode Right-to-Left-Override im Namen (gnp.exe -> exe.png) ---
-        if (fileName.Contains('‮'))
+        if (fileName.Contains(RightToLeftOverride))
             f.AddIndicator("RTLO", "Dateiname enthaelt ein unsichtbares Umkehrzeichen (RTLO) zur Tarnung der Endung", 60);
 
         // --- Systemprozess-Imitation ---
