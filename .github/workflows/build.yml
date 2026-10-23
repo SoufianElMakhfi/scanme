@@ -1,0 +1,52 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Test
+        run: dotnet test tests/ScanMe.Tests -c Release
+
+      - name: Publish (x64 + ARM64, self-contained single file)
+        shell: pwsh
+        run: |
+          foreach ($rid in "win-x64", "win-arm64") {
+            foreach ($proj in "src/ScanMe.App/ScanMe.App.csproj", "src/ScanMe.Cli/ScanMe.Cli.csproj") {
+              dotnet publish $proj -c Release -r $rid -o "publish/$rid" --self-contained true `
+                -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+                -p:EnableCompressionInSingleFile=true -p:DebugType=none
+            }
+            Compress-Archive -Path "publish/$rid/*.exe" -DestinationPath "ScanMe-$rid.zip"
+          }
+          Get-FileHash ScanMe-*.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Set-Content SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ScanMe
+          path: |
+            ScanMe-*.zip
+            SHA256SUMS.txt
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ScanMe-*.zip
+            SHA256SUMS.txt
+          generate_release_notes: true

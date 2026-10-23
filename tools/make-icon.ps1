@@ -37,7 +37,7 @@ foreach ($s in $sizes) {
         $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
         $pngs += ,@($s, $ms.ToArray())
     } else {
-        # Kleine Groessen als 32-Bit-DIB (BITMAPINFOHEADER + BGRA bottom-up + AND-Maske) – kompatibel mit GDI+/NotifyIcon
+        # Kleine Groessen als 32-Bit-DIB (BITMAPINFOHEADER + BGRA bottom-up + AND-Maske) - kompatibel mit GDI+/NotifyIcon
         $ms = New-Object System.IO.MemoryStream
         $w = New-Object System.IO.BinaryWriter $ms
         $w.Write([UInt32]40); $w.Write([Int32]$s); $w.Write([Int32]($s * 2)); $w.Write([UInt16]1); $w.Write([UInt16]32)
@@ -72,3 +72,4 @@ foreach ($p in $pngs) {
 foreach ($p in $pngs) { $bw.Write($p[1]) }
 $bw.Close()
 "Icon geschrieben: $Out"
+
