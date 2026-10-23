@@ -4,7 +4,7 @@ public sealed class Finding
 {
     public string Id { get; init; } = Guid.NewGuid().ToString("N");
     public required string ScannerId { get; init; }
-    public required FindingCategory Category { get; init; }
+    public required FindingCategory Category { get; set; }
     public required string Title { get; init; }
 
     /// <summary>Was wurde gefunden.</summary>

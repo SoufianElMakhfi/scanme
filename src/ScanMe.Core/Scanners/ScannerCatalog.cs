@@ -12,5 +12,9 @@ public static class ScannerCatalog
         new NetworkScanner(),
         new SecurityConfigScanner(),
         new AccountScanner(),
+        new SoftwareScanner(),
+        new FileSystemScanner(),
+        // Muss zuletzt laufen: vertieft die Funde aller anderen Scanner.
+        new MalwareScanner(),
     ];
 }

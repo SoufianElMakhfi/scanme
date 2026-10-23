@@ -49,6 +49,10 @@ public static class KnownTools
 
     public static Tool? FindByProcessName(string name) => ByProcess.TryGetValue(name, out var t) ? t : null;
 
+    /// <summary>Sucht anhand des Anzeigenamens installierter Software (voller Toolname, z. B. "Chrome Remote Desktop").</summary>
+    public static Tool? FindByDisplayName(string displayName) =>
+        All.FirstOrDefault(t => t.Name.Split(" / ").Any(alt => displayName.Contains(alt.Trim(), StringComparison.OrdinalIgnoreCase)));
+
     public static string KindText(ToolKind k) => k switch
     {
         ToolKind.RemoteAccess => "Fernwartungssoftware",

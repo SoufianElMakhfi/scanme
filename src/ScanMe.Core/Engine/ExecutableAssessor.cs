@@ -129,6 +129,12 @@ public static class ExecutableAssessor
                 f.AddIndicator("RENAMED_TOOL", $"Umbenanntes Werkzeug: eigentlich \"{orig}\", hier als \"{fileName}\"", 45);
         }
 
+        // --- Gefaelschte Herstellerangaben: behauptet Microsoft, ist aber nicht von Microsoft signiert ---
+        bool claimsMicrosoft = (info.CompanyName?.Contains("Microsoft", StringComparison.OrdinalIgnoreCase) ?? false)
+                               || (info.ProductName?.Contains("Microsoft Windows", StringComparison.OrdinalIgnoreCase) ?? false);
+        if (claimsMicrosoft && !info.IsMicrosoftSigned && info.Signature != SignatureState.Valid)
+            f.AddIndicator("FAKE_MICROSOFT", $"Gibt sich als Microsoft aus (\"{info.CompanyName ?? info.ProductName}\"), ist aber nicht von Microsoft signiert", 45);
+
         // --- Fehlende Metadaten ---
         if (info.Signature != SignatureState.Valid && info.CompanyName == null && info.FileDescription == null && fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
             f.AddIndicator("NO_METADATA", "Keine Herstellerangaben in der Datei", 10);

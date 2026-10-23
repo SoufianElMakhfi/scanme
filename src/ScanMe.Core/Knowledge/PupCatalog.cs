@@ -51,6 +51,12 @@ public static class PupCatalog
     public static Entry? Find(string processName) => ByName.TryGetValue(processName, out var e) ? e : null;
 
     /// <summary>Sucht nach Programmnamen (z. B. Anzeigename in "Programme und Features").</summary>
-    public static Entry? FindByDisplayName(string displayName) =>
-        All.FirstOrDefault(e => displayName.Contains(e.Name.Split(' ', '/')[0], StringComparison.OrdinalIgnoreCase) && e.Kind == Kind.Pup);
+    /// Verglichen wird mit den Programmdateinamen ohne Endung ("wavebrowser" passt auf "WaveBrowser").
+    public static Entry? FindByDisplayName(string displayName)
+    {
+        string norm = new string(displayName.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+        return All.Where(e => e.Kind == Kind.Pup).FirstOrDefault(e => e.Names
+            .Select(n => Path.GetFileNameWithoutExtension(n.Split('#')[0]).Replace(" ", "").ToLowerInvariant())
+            .Any(stem => stem.Length >= 6 && !stem.EndsWith("service") && norm.Contains(stem)));
+    }
 }

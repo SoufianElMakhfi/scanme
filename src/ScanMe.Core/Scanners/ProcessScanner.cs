@@ -194,7 +194,15 @@ public sealed class ProcessScanner : IScanner
             if (DocumentApps.Contains(parent.Name))
                 f.AddIndicator("DOC_SPAWN", $"{parent.Name} hat {p.Name} gestartet – typisch fuer boesartige Makros/Phishing-Anhaenge", 65);
             else if (Browsers.Contains(parent.Name))
-                f.AddIndicator("BROWSER_SPAWN", $"Browser {parent.Name} hat {p.Name} gestartet", 40);
+            {
+                // Native-Messaging-Hosts von Erweiterungen werden vom Browser ueber cmd.exe gestartet.
+                bool nativeMessaging = p.CommandLine?.Contains("chrome-extension://", StringComparison.OrdinalIgnoreCase) == true
+                                       || p.CommandLine?.Contains("moz-extension://", StringComparison.OrdinalIgnoreCase) == true;
+                if (nativeMessaging)
+                    f.AddIndicator("BROWSER_NATIVE_HOST", $"Native-Messaging-Host einer Browsererweiterung (von {parent.Name} gestartet)", 5);
+                else
+                    f.AddIndicator("BROWSER_SPAWN", $"Browser {parent.Name} hat {p.Name} gestartet", 40);
+            }
         }
 
         // --- Skript-Hosts ---

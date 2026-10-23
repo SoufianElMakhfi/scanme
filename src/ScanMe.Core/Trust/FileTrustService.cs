@@ -49,7 +49,10 @@ public sealed class FileTrustService
         try { hr = WinTrust.VerifyEmbedded(path); }
         catch { hr = WinTrust.TRUST_E_NOSIGNATURE; }
 
-        if (hr == WinTrust.TRUST_E_NOSIGNATURE || hr == WinTrust.TRUST_E_SUBJECT_FORM_UNKNOWN || hr == WinTrust.TRUST_E_PROVIDER_UNKNOWN)
+        // Katalogsignaturen gibt es praktisch nur fuer System-/Treiber-/Programmdateien. Die Suche ist teuer,
+        // daher nur dort, wo sie Sinn ergibt.
+        bool catalogPlausible = PathUtil.IsUnderWindowsDirectory(path) || PathUtil.IsUnderProgramFiles(path) || PathUtil.IsUnder(path, PathUtil.ProgramData);
+        if (catalogPlausible && (hr == WinTrust.TRUST_E_NOSIGNATURE || hr == WinTrust.TRUST_E_SUBJECT_FORM_UNKNOWN || hr == WinTrust.TRUST_E_PROVIDER_UNKNOWN))
         {
             try
             {
