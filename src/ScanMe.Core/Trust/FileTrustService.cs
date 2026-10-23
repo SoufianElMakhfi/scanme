@@ -82,6 +82,16 @@ public sealed class FileTrustService
             catch { }
         }
 
+        string? statusText = null;
+        if (state == SignatureState.NotSigned && PackageSignature.TryGet(path, out var pkgSigner, out var pkgOrg))
+        {
+            state = SignatureState.Valid;
+            signer = pkgSigner;
+            org = pkgOrg;
+            issuer = pkgOrg != null && pkgOrg.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) ? "Microsoft" : null;
+            statusText = "Gueltig (signiertes App-Paket / Microsoft Store)";
+        }
+
         bool isMicrosoft = state == SignatureState.Valid
             && signer != null
             && signer.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase)
@@ -102,7 +112,7 @@ public sealed class FileTrustService
             Path = path,
             Exists = true,
             Signature = state,
-            SignatureStatusText = catalog ? "Gueltig (Windows-Katalog)" : WinTrust.Describe(hr),
+            SignatureStatusText = statusText ?? (catalog ? "Gueltig (Windows-Katalog)" : WinTrust.Describe(hr)),
             IsCatalogSigned = catalog,
             Signer = signer,
             SignerOrganization = org,
