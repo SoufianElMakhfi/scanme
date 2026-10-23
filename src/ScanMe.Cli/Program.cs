@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ScanMe.Core.Engine;
@@ -55,7 +55,7 @@ var report = await engine.RunAsync(options, progress, cts.Token);
 Console.Error.WriteLine();
 
 Console.WriteLine($"\n=== ScanMe Bericht – {report.MachineName} – {report.OsVersion} ===");
-Console.WriteLine($"Adminrechte: {(report.WasElevated ? "ja" : "NEIN (eingeschraenkter Scan)")}   Dauer: {(report.FinishedAt - report.StartedAt):mm\\:ss}");
+Console.WriteLine($"Adminrechte: {(report.WasElevated ? "ja" : "NEIN (eingeschränkter Scan)")}   Dauer: {(report.FinishedAt - report.StartedAt):mm\\:ss}");
 Console.WriteLine($"Gesundheit: {report.HealthScore}/100   Kritisch {report.Count(Severity.Critical)} · Hoch {report.Count(Severity.High)} · Mittel {report.Count(Severity.Medium)} · Niedrig {report.Count(Severity.Low)} · Info {report.Count(Severity.Info)}\n");
 
 foreach (var f in report.Findings.Where(f => f.Severity >= minSeverity))

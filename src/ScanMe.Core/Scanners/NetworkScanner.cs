@@ -81,7 +81,7 @@ public sealed class NetworkScanner : IScanner
             {
                 ScannerId = Id,
                 Category = FindingCategory.Network,
-                Title = $"Netzwerkaktivitaet: {name}",
+                Title = $"Netzwerkaktivität: {name}",
                 ProcessId = group.Key,
             };
 
@@ -93,7 +93,7 @@ public sealed class NetworkScanner : IScanner
                 if (info != null && info.Signature != SignatureState.Valid)
                     f.AddIndicator("NET_UNSIGNED_EXT", $"Unsigniertes Programm mit {external.Count} Verbindung(en) ins Internet", 15);
                 if (lolbin)
-                    f.AddIndicator("NET_LOLBIN", $"{name} hat eine aktive Internetverbindung – typisch fuer Downloader/Reverse Shells", 40);
+                    f.AddIndicator("NET_LOLBIN", $"{name} hat eine aktive Internetverbindung – typisch für Downloader/Reverse Shells", 40);
             }
 
             foreach (var c in external)
@@ -102,7 +102,7 @@ public sealed class NetworkScanner : IScanner
 
             if (listeners.Count > 0 && info is { IsMicrosoftSigned: false })
             {
-                f.AddIndicator("NET_LISTEN", $"Lauscht auf {listeners.Count} Port(s) fuer Verbindungen aus dem Netzwerk", info.Signature == SignatureState.Valid ? 5 : 20);
+                f.AddIndicator("NET_LISTEN", $"Lauscht auf {listeners.Count} Port(s) für Verbindungen aus dem Netzwerk", info.Signature == SignatureState.Valid ? 5 : 20);
                 foreach (var l in listeners)
                     if (SuspiciousPorts.TryGetValue(l.LocalPort, out var why))
                         f.AddIndicator($"NET_LPORT_{l.LocalPort}", $"Lauscht auf Port {l.LocalPort} ({why})", info.Signature == SignatureState.Valid ? 10 : 40);
@@ -121,8 +121,8 @@ public sealed class NetworkScanner : IScanner
             f.Explanation = "Malware muss mit ihrem Betreiber kommunizieren (Command & Control) oder gestohlene Daten senden. " +
                             "Unbekannte, unsignierte Programme mit Internetverbindung verdienen deshalb einen genauen Blick.";
             f.Recommendation = score >= 50
-                ? "Prozess beenden, Programmdatei in Quarantaene verschieben und die Ziel-IP-Adressen (z. B. auf abuseipdb.com) pruefen."
-                : "Pruefen, ob Sie das Programm kennen und ob es ins Internet darf. Ziel-IPs ggf. auf abuseipdb.com nachschlagen.";
+                ? "Prozess beenden, Programmdatei in Quarantäne verschieben und die Ziel-IP-Adressen (z. B. auf abuseipdb.com) prüfen."
+                : "Prüfen, ob Sie das Programm kennen und ob es ins Internet darf. Ziel-IPs ggf. auf abuseipdb.com nachschlagen.";
             if (!f.IsProtected)
                 f.Actions.Insert(0, new RemediationAction { Kind = RemediationKind.KillProcess, Label = "Prozess beenden", Target = group.Key.ToString() });
             ctx.Add(f);
@@ -176,15 +176,15 @@ public sealed class NetworkScanner : IScanner
                 Category = FindingCategory.Network,
                 Title = "Hosts-Datei leitet wichtige Domains um",
                 FilePath = hosts,
-                Description = "Die Hosts-Datei enthaelt Eintraege fuer: " + string.Join(", ", sensitive.Select(e => $"{e.Host} → {e.Ip}").Take(15)),
+                Description = "Die Hosts-Datei enthält Einträge für: " + string.Join(", ", sensitive.Select(e => $"{e.Host} → {e.Ip}").Take(15)),
                 Explanation = blocksSecurity
-                    ? "Malware blockiert ueber die Hosts-Datei haeufig Windows Update und Antivirus-Hersteller, damit sie nicht entdeckt wird."
+                    ? "Malware blockiert über die Hosts-Datei häufig Windows Update und Antivirus-Hersteller, damit sie nicht entdeckt wird."
                     : "Werden Bank-, Mail- oder Login-Domains auf fremde IP-Adressen umgeleitet, landen Sie trotz korrekter Adresse auf einer Phishing-Seite.",
-                Recommendation = "Pruefen Sie, ob Sie diese Eintraege selbst gesetzt haben (z. B. Werbeblocker). Falls nicht: Hosts-Datei auf Standard zuruecksetzen und Passwoerter der betroffenen Dienste aendern.",
+                Recommendation = "Prüfen Sie, ob Sie diese Einträge selbst gesetzt haben (z. B. Werbeblocker). Falls nicht: Hosts-Datei auf Standard zurücksetzen und Passwörter der betroffenen Dienste ändern.",
             };
             f.AddIndicator("HOSTS_SENSITIVE", $"{sensitive.Count} sicherheitsrelevante Domain(s) umgeleitet", blocksSecurity ? 55 : 65);
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.RestoreHostsFile, Label = "Hosts-Datei zuruecksetzen (mit Sicherung)", Target = hosts });
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort oeffnen", Target = hosts, RequiresConfirmation = false });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.RestoreHostsFile, Label = "Hosts-Datei zurücksetzen (mit Sicherung)", Target = hosts });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort öffnen", Target = hosts, RequiresConfirmation = false });
             ctx.Add(f);
         }
 
@@ -195,13 +195,13 @@ public sealed class NetworkScanner : IScanner
             {
                 ScannerId = Id,
                 Category = FindingCategory.Network,
-                Title = "Benutzerdefinierte Eintraege in der Hosts-Datei",
+                Title = "Benutzerdefinierte Einträge in der Hosts-Datei",
                 FilePath = hosts,
-                Description = $"{ordinary.Count} Eintrag/Eintraege, z. B.: " + string.Join(", ", ordinary.Take(8).Select(e => $"{e.Host} → {e.Ip}")),
-                Explanation = adblock ? "Sieht nach einer Werbe-/Tracking-Sperrliste aus." : "Die Hosts-Datei ueberschreibt DNS fuer einzelne Domains.",
-                Recommendation = "Nur relevant, wenn Sie die Eintraege nicht selbst vorgenommen haben.",
+                Description = $"{ordinary.Count} Eintrag/Einträge, z. B.: " + string.Join(", ", ordinary.Take(8).Select(e => $"{e.Host} → {e.Ip}")),
+                Explanation = adblock ? "Sieht nach einer Werbe-/Tracking-Sperrliste aus." : "Die Hosts-Datei überschreibt DNS für einzelne Domains.",
+                Recommendation = "Nur relevant, wenn Sie die Einträge nicht selbst vorgenommen haben.",
             };
-            f.AddIndicator("HOSTS_CUSTOM", "Benutzerdefinierte Hosts-Eintraege", adblock ? 0 : 10);
+            f.AddIndicator("HOSTS_CUSTOM", "Benutzerdefinierte Hosts-Einträge", adblock ? 0 : 10);
             ctx.Add(f);
         }
     }
@@ -229,10 +229,10 @@ public sealed class NetworkScanner : IScanner
                     Category = FindingCategory.Network,
                     Title = $"Proxy-Autokonfiguration (PAC) aktiv – {user}",
                     Location = key,
-                    Description = $"Der Webverkehr wird ueber das Skript {pac} gesteuert.",
-                    Explanation = "Banking-Trojaner setzen PAC-Skripte, um nur Bank-Webseiten ueber einen Angreifer-Server umzuleiten. " +
+                    Description = $"Der Webverkehr wird über das Skript {pac} gesteuert.",
+                    Explanation = "Banking-Trojaner setzen PAC-Skripte, um nur Bank-Webseiten über einen Angreifer-Server umzuleiten. " +
                                   "In Firmennetzen ist ein PAC-Skript dagegen normal.",
-                    Recommendation = "Wenn dies kein Firmen-PC ist: In Einstellungen → Netzwerk und Internet → Proxy das Setup-Skript deaktivieren und Passwoerter aendern.",
+                    Recommendation = "Wenn dies kein Firmen-PC ist: In Einstellungen → Netzwerk und Internet → Proxy das Setup-Skript deaktivieren und Passwörter ändern.",
                 };
                 f.AddIndicator("PAC", "Proxy-Autokonfiguration gesetzt", remotePac ? 45 : 25);
                 f.Detail("PAC-URL", pac);
@@ -249,11 +249,11 @@ public sealed class NetworkScanner : IScanner
                     Category = FindingCategory.Network,
                     Title = $"Manueller Proxy aktiv – {user}",
                     Location = key,
-                    Description = $"Webverkehr laeuft ueber den Proxy {server}.",
+                    Description = $"Webverkehr läuft über den Proxy {server}.",
                     Explanation = local
                         ? "Ein lokaler Proxy kann von Entwickler-Tools (Fiddler, Burp) stammen – oder von Adware, die Webseiten manipuliert."
-                        : "Ein Proxy sieht (und kann veraendern), was Sie im Web tun. Malware setzt Proxys, um Datenverkehr mitzulesen.",
-                    Recommendation = "Pruefen, ob Sie den Proxy kennen (Firma, VPN, Entwickler-Tool). Falls nicht: deaktivieren.",
+                        : "Ein Proxy sieht (und kann verändern), was Sie im Web tun. Malware setzt Proxys, um Datenverkehr mitzulesen.",
+                    Recommendation = "Prüfen, ob Sie den Proxy kennen (Firma, VPN, Entwickler-Tool). Falls nicht: deaktivieren.",
                 };
                 f.AddIndicator("PROXY", "Systemweiter Proxy gesetzt", local ? 20 : 35);
                 f.Detail("Proxy", server).Detail("Ausnahmen", RegistryUtil.GetString(key, "ProxyOverride"));
@@ -292,11 +292,11 @@ public sealed class NetworkScanner : IScanner
                     Category = FindingCategory.Network,
                     Title = $"Unbekannter DNS-Server: {nic.Name}",
                     Description = $"Der Netzwerkadapter \"{nic.Name}\" nutzt den/die DNS-Server {string.Join(", ", unknown)}.",
-                    Explanation = "DNS uebersetzt Webadressen in IP-Adressen. 'DNS-Changer'-Malware traegt eigene Server ein, um Sie auf gefaelschte Seiten zu leiten. " +
-                                  "Viele Internetanbieter nutzen jedoch eigene, oeffentliche DNS-Server – dann ist alles in Ordnung.",
-                    Recommendation = "Pruefen, ob die IP zu Ihrem Internetanbieter, VPN oder Ihrer Firma gehoert (z. B. per Whois). Im Zweifel DNS auf 'Automatisch' stellen.",
+                    Explanation = "DNS übersetzt Webadressen in IP-Adressen. 'DNS-Changer'-Malware trägt eigene Server ein, um Sie auf gefälschte Seiten zu leiten. " +
+                                  "Viele Internetanbieter nutzen jedoch eigene, öffentliche DNS-Server – dann ist alles in Ordnung.",
+                    Recommendation = "Prüfen, ob die IP zu Ihrem Internetanbieter, VPN oder Ihrer Firma gehört (z. B. per Whois). Im Zweifel DNS auf 'Automatisch' stellen.",
                 };
-                f.AddIndicator("DNS_UNKNOWN", "Nicht-standardmaessiger oeffentlicher DNS-Server", 15);
+                f.AddIndicator("DNS_UNKNOWN", "Nicht-standardmäßiger öffentlicher DNS-Server", 15);
                 ctx.Add(f);
             }
         }
@@ -333,19 +333,19 @@ public sealed class NetworkScanner : IScanner
                     {
                         ScannerId = Id,
                         Category = FindingCategory.Network,
-                        Title = $"Verdaechtiges Stammzertifikat: {cert.GetNameInfo(X509NameType.SimpleName, false)}",
+                        Title = $"Verdächtiges Stammzertifikat: {cert.GetNameInfo(X509NameType.SimpleName, false)}",
                         Location = $"Zertifikatspeicher {location}\\Root",
-                        Description = $"Im Speicher vertrauenswuerdiger Stammzertifizierungsstellen liegt \"{subject}\" (gueltig ab {cert.NotBefore:d}).",
-                        Explanation = "Wer ein eigenes Stammzertifikat installiert, kann verschluesselte HTTPS-Verbindungen unbemerkt mitlesen und veraendern " +
+                        Description = $"Im Speicher vertrauenswürdiger Stammzertifizierungsstellen liegt \"{subject}\" (gültig ab {cert.NotBefore:d}).",
+                        Explanation = "Wer ein eigenes Stammzertifikat installiert, kann verschlüsselte HTTPS-Verbindungen unbemerkt mitlesen und verändern " +
                                       "(Man-in-the-Middle). Adware wie 'Superfish' nutzte genau das." +
                                       (devTool ? " Hier handelt es sich vermutlich um ein Entwickler-/Firmenwerkzeug." : ""),
                         Recommendation = devTool
-                            ? "Wenn Sie das Tool nicht (mehr) nutzen, Zertifikat ueber certmgr.msc entfernen."
-                            : "Zertifikat ueber certmgr.msc (Benutzer) bzw. certlm.msc (Computer) entfernen, sofern Sie es nicht bewusst installiert haben.",
+                            ? "Wenn Sie das Tool nicht (mehr) nutzen, Zertifikat über certmgr.msc entfernen."
+                            : "Zertifikat über certmgr.msc (Benutzer) bzw. certlm.msc (Computer) entfernen, sofern Sie es nicht bewusst installiert haben.",
                     };
-                    f.AddIndicator(bad != null ? "ROOT_KNOWN_BAD" : "ROOT_RECENT", bad != null ? $"Bekanntes Abfang-Zertifikat ({bad})" : "Kuerzlich hinzugefuegtes selbstsigniertes Stammzertifikat",
+                    f.AddIndicator(bad != null ? "ROOT_KNOWN_BAD" : "ROOT_RECENT", bad != null ? $"Bekanntes Abfang-Zertifikat ({bad})" : "Kürzlich hinzugefügtes selbstsigniertes Stammzertifikat",
                         bad != null ? (devTool ? 20 : 70) : 20);
-                    f.Detail("Fingerabdruck", cert.Thumbprint).Detail("Aussteller", cert.Issuer).Detail("Gueltig bis", cert.NotAfter.ToString("d"));
+                    f.Detail("Fingerabdruck", cert.Thumbprint).Detail("Aussteller", cert.Issuer).Detail("Gültig bis", cert.NotAfter.ToString("d"));
                     ctx.Add(f);
                 }
             }

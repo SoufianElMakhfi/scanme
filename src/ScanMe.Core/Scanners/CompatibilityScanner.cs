@@ -13,17 +13,17 @@ namespace ScanMe.Core.Scanners;
 public sealed class CompatibilityScanner : IScanner
 {
     public string Id => "compat";
-    public string Name => "Kompatibilitaet & Stabilitaet";
-    public string Description => "Treiber-/Geraetefehler, Bluescreens, abstuerzende Programme, Speicherplatz, Festplatten-SMART.";
+    public string Name => "Kompatibilität & Stabilität";
+    public string Description => "Treiber-/Gerätefehler, Bluescreens, abstürzende Programme, Speicherplatz, Festplatten-SMART.";
     public bool InQuickScan => false;
 
     public Task ScanAsync(ScanContext ctx)
     {
-        ctx.Status("Geraete-Manager …");
+        ctx.Status("Geräte-Manager …");
         DeviceProblems(ctx);
-        ctx.Status("Bluescreens & Abstuerze …");
+        ctx.Status("Bluescreens & Abstürze …");
         Crashes(ctx);
-        ctx.Status("Datentraeger …");
+        ctx.Status("Datenträger …");
         Disks(ctx);
         ctx.Status("Systemzustand …");
         SystemState(ctx);
@@ -40,22 +40,22 @@ public sealed class CompatibilityScanner : IScanner
 
     private static string ErrorCodeText(int code) => code switch
     {
-        1 => "Geraet ist nicht richtig konfiguriert",
-        3 => "Treiber beschaedigt oder zu wenig Speicher",
-        10 => "Geraet kann nicht gestartet werden",
-        12 => "Nicht genuegend freie Ressourcen",
+        1 => "Gerät ist nicht richtig konfiguriert",
+        3 => "Treiber beschädigt oder zu wenig Speicher",
+        10 => "Gerät kann nicht gestartet werden",
+        12 => "Nicht genügend freie Ressourcen",
         14 => "Neustart erforderlich",
         18 => "Treiber muss neu installiert werden",
-        19 => "Registrierungsinformationen beschaedigt",
-        21 => "Geraet wird entfernt",
+        19 => "Registrierungsinformationen beschädigt",
+        21 => "Gerät wird entfernt",
         28 => "Kein Treiber installiert",
         31 => "Treiber konnte nicht geladen werden",
         32 => "Treiberdienst deaktiviert",
         37 => "Treiber hat einen Fehler gemeldet",
-        39 => "Treiber beschaedigt oder fehlt",
-        43 => "Geraet hat ein Problem gemeldet (oft Hardware/Treiber-Absturz)",
-        48 => "Treiber wurde wegen Inkompatibilitaet blockiert",
-        52 => "Digitale Signatur des Treibers kann nicht ueberprueft werden",
+        39 => "Treiber beschädigt oder fehlt",
+        43 => "Gerät hat ein Problem gemeldet (oft Hardware/Treiber-Absturz)",
+        48 => "Treiber wurde wegen Inkompatibilität blockiert",
+        52 => "Digitale Signatur des Treibers kann nicht überprüft werden",
         _ => $"Fehlercode {code}",
     };
 
@@ -70,17 +70,17 @@ public sealed class CompatibilityScanner : IScanner
                 {
                     int code = Convert.ToInt32(mo["ConfigManagerErrorCode"] ?? 0);
                     if (code is 22 or 24 or 45) continue; // deaktiviert / nicht angeschlossen
-                    string name = mo["Name"]?.ToString() ?? mo["DeviceID"]?.ToString() ?? "Unbekanntes Geraet";
-                    var f = Add(ctx, $"Geraeteproblem: {name}", code is 52 or 48 ? 25 : 15,
+                    string name = mo["Name"]?.ToString() ?? mo["DeviceID"]?.ToString() ?? "Unbekanntes Gerät";
+                    var f = Add(ctx, $"Geräteproblem: {name}", code is 52 or 48 ? 25 : 15,
                         $"{name}: {ErrorCodeText(code)} (Code {code}).",
-                        "Fehlerhafte oder fehlende Treiber verursachen Abstuerze, Leistungsprobleme oder fehlende Funktionen.",
-                        code == 28 ? "Treiber ueber Windows Update (optionale Updates) oder von der Herstellerseite installieren."
-                                   : "Im Geraete-Manager Treiber aktualisieren oder Geraet deinstallieren und neu erkennen lassen.");
-                    f.Detail("Geraete-ID", mo["DeviceID"]?.ToString()).Detail("Klasse", mo["PNPClass"]?.ToString());
+                        "Fehlerhafte oder fehlende Treiber verursachen Abstürze, Leistungsprobleme oder fehlende Funktionen.",
+                        code == 28 ? "Treiber über Windows Update (optionale Updates) oder von der Herstellerseite installieren."
+                                   : "Im Geräte-Manager Treiber aktualisieren oder Gerät deinstallieren und neu erkennen lassen.");
+                    f.Detail("Geräte-ID", mo["DeviceID"]?.ToString()).Detail("Klasse", mo["PNPClass"]?.ToString());
                 }
             }
         }
-        catch { ctx.Note("Geraeteliste nicht abrufbar."); }
+        catch { ctx.Note("Geräteliste nicht abrufbar."); }
     }
 
     private static IEnumerable<EventRecord> Query(string log, string xpath, int max = 500)
@@ -112,17 +112,17 @@ public sealed class CompatibilityScanner : IScanner
             int dumpCount = Directory.Exists(dumps) ? SafeCount(dumps) : 0;
             var f = Add(ctx, $"{bsods.Count} Bluescreen(s) in 30 Tagen", bsods.Count >= 3 ? 40 : 25,
                 string.Join("; ", bsods.Take(10).Select(b => $"{b.When:g}: Stopcode {b.Code}")),
-                "Bluescreens werden meist von fehlerhaften Treibern, defektem RAM oder Ueberhitzung verursacht – selten auch von Rootkits.",
-                "Treiber (v. a. Grafik, Chipsatz) aktualisieren, Arbeitsspeicher pruefen (mdsched.exe). Minidumps lassen sich mit WinDbg analysieren.");
+                "Bluescreens werden meist von fehlerhaften Treibern, defektem RAM oder Überhitzung verursacht – selten auch von Rootkits.",
+                "Treiber (v. a. Grafik, Chipsatz) aktualisieren, Arbeitsspeicher prüfen (mdsched.exe). Minidumps lassen sich mit WinDbg analysieren.");
             f.Detail("Minidumps", $"{dumpCount} in {dumps}");
         }
 
         int unexpected = Query("System", $"*[System[Provider[@Name='Microsoft-Windows-Kernel-Power'] and (EventID=41) and TimeCreated[timediff(@SystemTime) <= {d30}]]]").Count();
         if (unexpected >= 2)
             Add(ctx, $"{unexpected} unerwartete Abschaltungen in 30 Tagen", unexpected >= 5 ? 25 : 15,
-                "Windows wurde mehrfach nicht ordnungsgemaess heruntergefahren (Absturz, Stromausfall, Einfrieren).",
-                "Haeufige harte Abschaltungen deuten auf Hardware-, Netzteil- oder Treiberprobleme hin.",
-                "Temperaturen und Netzteil pruefen, Treiber aktualisieren.");
+                "Windows wurde mehrfach nicht ordnungsgemäß heruntergefahren (Absturz, Stromausfall, Einfrieren).",
+                "Häufige harte Abschaltungen deuten auf Hardware-, Netzteil- oder Treiberprobleme hin.",
+                "Temperaturen und Netzteil prüfen, Treiber aktualisieren.");
 
         long d14 = 14L * 24 * 3600 * 1000;
         var appCrashes = Query("Application", $"*[System[Provider[@Name='Application Error'] and (EventID=1000) and TimeCreated[timediff(@SystemTime) <= {d14}]]]", 1000)
@@ -130,10 +130,10 @@ public sealed class CompatibilityScanner : IScanner
         foreach (var g in appCrashes.GroupBy(c => c.App, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() >= 3).OrderByDescending(g => g.Count()).Take(10))
         {
             var modules = g.GroupBy(c => c.Module, StringComparer.OrdinalIgnoreCase).OrderByDescending(m => m.Count()).Select(m => $"{m.Key} ({m.Count()}x)").Take(3);
-            Add(ctx, $"Programm stuerzt haeufig ab: {g.Key}", 15,
-                $"{g.Key} ist in 14 Tagen {g.Count()}-mal abgestuerzt. Fehlerhaftes Modul: {string.Join(", ", modules)}.",
-                "Wiederholte Abstuerze deuten auf Inkompatibilitaet, defekte Installation oder eine eingeschleuste DLL (z. B. Overlay, alter Virenscanner) hin.",
-                "Programm aktualisieren oder neu installieren. Ist das fehlerhafte Modul eine fremde DLL, das zugehoerige Programm pruefen.");
+            Add(ctx, $"Programm stürzt häufig ab: {g.Key}", 15,
+                $"{g.Key} ist in 14 Tagen {g.Count()}-mal abgestürzt. Fehlerhaftes Modul: {string.Join(", ", modules)}.",
+                "Wiederholte Abstürze deuten auf Inkompatibilität, defekte Installation oder eine eingeschleuste DLL (z. B. Overlay, alter Virenscanner) hin.",
+                "Programm aktualisieren oder neu installieren. Ist das fehlerhafte Modul eine fremde DLL, das zugehörige Programm prüfen.");
         }
 
         // Fremde DLLs, die in vielen verschiedenen Programmen Abstuerze verursachen
@@ -145,10 +145,10 @@ public sealed class CompatibilityScanner : IScanner
             .GroupBy(c => c.Module, StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Select(c => c.App).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= 3);
         foreach (var g in injected)
-            Add(ctx, $"Modul verursacht Abstuerze in mehreren Programmen: {g.Key}", 25,
-                $"{g.Key} war an Abstuerzen von {string.Join(", ", g.Select(c => c.App).Distinct().Take(6))} beteiligt.",
-                "Eine DLL, die in viele Programme geladen wird und dort abstuerzt, stammt oft von Overlays, Hooks, Virenscannern – oder Malware.",
-                "Herausfinden, zu welchem Programm das Modul gehoert (Dateisuche), und dieses aktualisieren oder entfernen.");
+            Add(ctx, $"Modul verursacht Abstürze in mehreren Programmen: {g.Key}", 25,
+                $"{g.Key} war an Abstürzen von {string.Join(", ", g.Select(c => c.App).Distinct().Take(6))} beteiligt.",
+                "Eine DLL, die in viele Programme geladen wird und dort abstürzt, stammt oft von Overlays, Hooks, Virenscannern – oder Malware.",
+                "Herausfinden, zu welchem Programm das Modul gehört (Dateisuche), und dieses aktualisieren oder entfernen.");
     }
 
     private void Disks(ScanContext ctx)
@@ -161,7 +161,7 @@ public sealed class CompatibilityScanner : IScanner
                 Add(ctx, $"Wenig Speicherplatz auf {sys.Name} ({freePct:0} % frei)", freePct < 5 ? 35 : freePct < 10 ? 20 : 10,
                     $"Frei: {TextUtil.FormatBytes(sys.AvailableFreeSpace)} von {TextUtil.FormatBytes(sys.TotalSize)}.",
                     "Unter 10 % freiem Speicher scheitern Windows-Updates und das System wird langsam.",
-                    "Datentraegerbereinigung (cleanmgr) bzw. Einstellungen → System → Speicher → Bereinigungsempfehlungen.");
+                    "Datenträgerbereinigung (cleanmgr) bzw. Einstellungen → System → Speicher → Bereinigungsempfehlungen.");
         }
         catch { }
 
@@ -172,9 +172,9 @@ public sealed class CompatibilityScanner : IScanner
                 using (mo)
                     if (mo["PredictFailure"] as bool? == true)
                         Add(ctx, "Festplatte meldet bevorstehenden Ausfall (SMART)", 70,
-                            $"Datentraeger {mo["InstanceName"]} meldet per SMART einen drohenden Ausfall.",
+                            $"Datenträger {mo["InstanceName"]} meldet per SMART einen drohenden Ausfall.",
                             "Die Festplatte/SSD kann jederzeit ausfallen – Datenverlust droht.",
-                            "SOFORT ein Backup aller wichtigen Daten anlegen und den Datentraeger ersetzen.");
+                            "SOFORT ein Backup aller wichtigen Daten anlegen und den Datenträger ersetzen.");
         }
         catch { /* ohne Adminrechte / bei NVMe nicht verfuegbar */ }
     }
@@ -185,8 +185,8 @@ public sealed class CompatibilityScanner : IScanner
         if (av.Count >= 2)
             Add(ctx, "Mehrere Virenscanner gleichzeitig aktiv", 30,
                 $"Aktiv: {string.Join(", ", av)}.",
-                "Mehrere Echtzeit-Virenscanner behindern sich gegenseitig: Abstuerze, Bremsen und Luecken im Schutz.",
-                "Nur einen Virenscanner behalten (Microsoft Defender ist fuer die meisten ausreichend).");
+                "Mehrere Echtzeit-Virenscanner behindern sich gegenseitig: Abstürze, Bremsen und Lücken im Schutz.",
+                "Nur einen Virenscanner behalten (Microsoft Defender ist für die meisten ausreichend).");
 
         bool reboot = RegistryUtil.SubKeys(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing").Contains("RebootPending")
                       || RegistryUtil.SubKeys(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update").Contains("RebootRequired");
@@ -196,7 +196,7 @@ public sealed class CompatibilityScanner : IScanner
 
         var uptime = TimeSpan.FromMilliseconds(Environment.TickCount64);
         if (uptime.TotalDays > 14)
-            Add(ctx, $"PC laeuft seit {uptime.TotalDays:0} Tagen ohne Neustart", 5,
+            Add(ctx, $"PC läuft seit {uptime.TotalDays:0} Tagen ohne Neustart", 5,
                 "Lange Laufzeiten verhindern das Einspielen von Updates und lassen Speicherlecks wachsen.",
                 "Gelegentliche Neustarts halten das System stabil.", "PC neu starten (Hinweis: 'Herunterfahren' bei Schnellstart ist kein echter Neustart).");
     }

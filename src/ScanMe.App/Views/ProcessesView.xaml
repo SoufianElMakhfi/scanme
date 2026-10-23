@@ -1,0 +1,100 @@
+<UserControl x:Class="ScanMe.App.Views.ProcessesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="28,24,28,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Aktualisieren" Command="{Binding RefreshCommand}" VerticalAlignment="Center" />
+            <StackPanel>
+                <TextBlock Text="Prozesse (live)" Style="{StaticResource H1}" />
+                <TextBlock Text="Alle laufenden Prozesse mit Herausgeber, Signatur und Risikobewertung – auch Hintergrundprozesse ohne Fenster."
+                           Style="{StaticResource Muted}" Margin="0,4,0,0" />
+                <TextBlock Text="{Binding Summary}" Style="{StaticResource Muted}" FontSize="12" Margin="0,4,0,0" />
+            </StackPanel>
+        </DockPanel>
+
+        <DockPanel Grid.Row="1" Margin="0,14,0,10">
+            <TextBox DockPanel.Dock="Right" Width="260" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" ToolTip="Name, PID, Pfad oder Herausgeber" />
+            <WrapPanel VerticalAlignment="Center">
+                <ToggleButton Style="{StaticResource Chip}" IsChecked="{Binding OnlySuspicious}" Content="Nur auffällige" />
+                <ToggleButton Style="{StaticResource Chip}" IsChecked="{Binding OnlyHidden}" Content="Nur ohne Fenster (Hintergrund)" />
+                <ToggleButton Style="{StaticResource Chip}" IsChecked="{Binding HideWindows}" Content="Windows-Komponenten ausblenden" />
+                <TextBlock Text="Lade …" Style="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center"
+                           Visibility="{Binding IsLoading, Converter={StaticResource Vis}}" />
+            </WrapPanel>
+        </DockPanel>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="380" />
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource Card}" Padding="0">
+                <DataGrid ItemsSource="{Binding View}" SelectedItem="{Binding Selected}">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="" Width="10">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Ellipse Width="8" Height="8" Fill="{Binding Severity, Converter={StaticResource SevBrush}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="190" />
+                        <DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="60" />
+                        <DataGridTextColumn Header="Risiko" Binding="{Binding Score}" Width="60" />
+                        <DataGridTextColumn Header="Herausgeber" Binding="{Binding Publisher}" Width="190" />
+                        <DataGridTextColumn Header="CPU %" Binding="{Binding Cpu}" Width="60" />
+                        <DataGridTextColumn Header="RAM" Binding="{Binding RamText}" Width="80" SortMemberPath="Ram" />
+                        <DataGridTextColumn Header="Fenster" Binding="{Binding WindowText}" Width="80" />
+                        <DataGridTextColumn Header="Internet" Binding="{Binding Connections}" Width="64" />
+                        <DataGridTextColumn Header="Pfad" Binding="{Binding Path}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource Card}">
+                <Grid>
+                    <TextBlock Text="Prozess auswählen" Style="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding Selected, Converter={StaticResource InvVis}}" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding Selected, Converter={StaticResource Vis}}">
+                        <StackPanel DataContext="{Binding Selected}">
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource H2}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                            <TextBlock Text="SIGNATUR" Style="{StaticResource Label}" Margin="0,14,0,2" />
+                            <TextBlock Text="{Binding SignatureText}" Style="{StaticResource Body}" />
+                            <TextBlock Text="{Binding Publisher}" Style="{StaticResource Body}" Foreground="{StaticResource MutedBrush}" />
+                            <TextBlock Text="ELTERNPROZESS" Style="{StaticResource Label}" Margin="0,12,0,2" />
+                            <TextBlock Style="{StaticResource Body}"><Run Text="{Binding ParentName, Mode=OneWay}" /> (PID <Run Text="{Binding ParentPid, Mode=OneWay}" />)</TextBlock>
+                            <TextBlock Text="GESTARTET" Style="{StaticResource Label}" Margin="0,12,0,2" />
+                            <TextBlock Text="{Binding Started}" Style="{StaticResource Body}" />
+                            <TextBlock Text="PFAD" Style="{StaticResource Label}" Margin="0,12,0,2" />
+                            <TextBox Text="{Binding Path, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" FontSize="12" />
+                            <TextBlock Text="KOMMANDOZEILE" Style="{StaticResource Label}" Margin="0,12,0,2" />
+                            <TextBox Text="{Binding CommandLine, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" FontSize="12" MaxHeight="120"
+                                     VerticalScrollBarVisibility="Auto" />
+                            <TextBlock Text="BEWERTUNG" Style="{StaticResource Label}" Margin="0,12,0,2" />
+                            <TextBlock Text="{Binding Indicators}" Style="{StaticResource Body}" FontFamily="{StaticResource MonoFont}" FontSize="12" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <DockPanel Grid.Row="3" Margin="0,12,0,0">
+            <WrapPanel DockPanel.Dock="Right">
+                <Button Content="Speicherort" Command="{Binding OpenLocationCommand}" Margin="8,0,0,0" />
+                <Button Content="VirusTotal (Hash)" Command="{Binding VirusTotalCommand}" Margin="8,0,0,0" />
+                <Button Style="{StaticResource DangerButton}" Content="Beenden" Command="{Binding KillCommand}" Margin="8,0,0,0" />
+                <Button Style="{StaticResource DangerButton}" Content="Beenden + Quarantäne" Command="{Binding QuarantineFileCommand}" Margin="8,0,0,0" />
+            </WrapPanel>
+            <TextBlock Text="{Binding Message}" VerticalAlignment="Center" Style="{StaticResource Body}" />
+        </DockPanel>
+    </Grid>
+</UserControl>

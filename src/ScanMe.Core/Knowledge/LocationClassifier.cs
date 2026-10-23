@@ -69,17 +69,17 @@ public static class LocationClassifier
 
     public static string Describe(LocationKind k) => k switch
     {
-        LocationKind.RecycleBin => "laeuft aus dem Papierkorb – ein klassisches Malware-Versteck",
-        LocationKind.Temp => "liegt in einem temporaeren Ordner – legitime Programme laufen dort selten dauerhaft",
+        LocationKind.RecycleBin => "läuft aus dem Papierkorb – ein klassisches Malware-Versteck",
+        LocationKind.Temp => "liegt in einem temporären Ordner – legitime Programme laufen dort selten dauerhaft",
         LocationKind.Public => "liegt im oeffentlichen Benutzerordner (C:\\Users\\Public) – beliebtes Malware-Versteck",
-        LocationKind.Downloads => "wird direkt aus dem Download-Ordner ausgefuehrt",
-        LocationKind.Desktop => "wird direkt vom Desktop ausgefuehrt",
+        LocationKind.Downloads => "wird direkt aus dem Download-Ordner ausgeführt",
+        LocationKind.Desktop => "wird direkt vom Desktop ausgeführt",
         LocationKind.UserAppDataRoaming => "liegt in AppData\\Roaming – von jedem Programm ohne Adminrechte beschreibbar",
         LocationKind.ProgramData => "liegt in ProgramData – von Benutzern beschreibbar",
         LocationKind.UserAppDataLocal => "liegt in AppData\\Local – ohne Adminrechte beschreibbar",
         LocationKind.UserAppDataLocalPrograms => "ist eine pro Benutzer installierte Anwendung",
-        LocationKind.Other => "liegt an einem ungewoehnlichen Ort",
-        LocationKind.ProgramFiles => "ist regulaer unter Programme installiert",
+        LocationKind.Other => "liegt an einem ungewöhnlichen Ort",
+        LocationKind.ProgramFiles => "ist regulär unter Programme installiert",
         _ => "liegt im Windows-Verzeichnis",
     };
 

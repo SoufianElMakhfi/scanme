@@ -232,15 +232,15 @@ internal static class WinTrust
 
     public static string Describe(int hr) => hr switch
     {
-        0 => "Gueltig",
+        0 => "Gültig",
         TRUST_E_NOSIGNATURE => "Nicht signiert",
         TRUST_E_SUBJECT_FORM_UNKNOWN => "Dateiformat nicht signierbar",
         TRUST_E_PROVIDER_UNKNOWN => "Unbekannter Signaturtyp",
         CERT_E_EXPIRED => "Zertifikat abgelaufen",
-        CERT_E_UNTRUSTEDROOT => "Nicht vertrauenswuerdige Stammzertifizierungsstelle",
+        CERT_E_UNTRUSTEDROOT => "Nicht vertrauenswürdige Stammzertifizierungsstelle",
         TRUST_E_BAD_DIGEST => "Signatur passt nicht zur Datei (manipuliert!)",
-        TRUST_E_EXPLICIT_DISTRUST => "Zertifikat explizit als nicht vertrauenswuerdig markiert",
+        TRUST_E_EXPLICIT_DISTRUST => "Zertifikat explizit als nicht vertrauenswürdig markiert",
         CRYPT_E_SECURITY_SETTINGS => "Durch Sicherheitsrichtlinie blockiert",
-        _ => $"Ungueltig (0x{hr:X8})",
+        _ => $"Ungültig (0x{hr:X8})",
     };
 }

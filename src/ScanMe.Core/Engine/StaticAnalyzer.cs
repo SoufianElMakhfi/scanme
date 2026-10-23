@@ -42,7 +42,7 @@ public static class StaticAnalyzer
             var packer = pe.Sections.Select(s => ContentSignatures.PackerSections.GetValueOrDefault(s.Name)).FirstOrDefault(p => p != null);
             if (packer != null)
             {
-                f.AddIndicator("PACKER", $"Mit {packer} gepackt/geschuetzt – erschwert die Analyse", packer == "UPX" ? 10 : 20);
+                f.AddIndicator("PACKER", $"Mit {packer} gepackt/geschützt – erschwert die Analyse", packer == "UPX" ? 10 : 20);
                 notes.Add("Packer: " + packer);
             }
 
@@ -50,15 +50,15 @@ public static class StaticAnalyzer
             // .NET-Assemblies speichern Ressourcen in .text – hohe Entropie ist dort normal.
             if (hot.Count > 0 && packer == null && !pe.IsDotNet)
             {
-                f.AddIndicator("HIGH_ENTROPY", $"Ausfuehrbarer Code ist verschluesselt/komprimiert (Entropie {hot.Max(s => s.Entropy):0.00}) – typisch fuer gepackte Malware", 15);
+                f.AddIndicator("HIGH_ENTROPY", $"Ausführbarer Code ist verschlüsselt/komprimiert (Entropie {hot.Max(s => s.Entropy):0.00}) – typisch für gepackte Malware", 15);
                 notes.Add($"Entropie {hot.Max(s => s.Entropy):0.00}");
             }
 
             if (pe.Sections.Any(s => s.Executable && s.Writable))
-                f.AddIndicator("RWX_SECTION", "Sektion ist gleichzeitig beschreibbar und ausfuehrbar (selbstmodifizierender Code)", 10);
+                f.AddIndicator("RWX_SECTION", "Sektion ist gleichzeitig beschreibbar und ausführbar (selbstmodifizierender Code)", 10);
 
             if (pe.Timestamp is { } ts && ts > DateTime.Now.AddDays(2) && ts.Year < 2100)
-                f.AddIndicator("FUTURE_TIMESTAMP", $"Kompilierzeitpunkt liegt in der Zukunft ({ts:d}) – gefaelscht", 10);
+                f.AddIndicator("FUTURE_TIMESTAMP", $"Kompilierzeitpunkt liegt in der Zukunft ({ts:d}) – gefälscht", 10);
 
             notes.Add((pe.IsDll ? "DLL" : "EXE") + (pe.Is64Bit ? " 64-Bit" : " 32-Bit") + (pe.IsDotNet ? " .NET" : ""));
             if (pe.Timestamp is { } t) notes.Add($"kompiliert {t:d}");
@@ -67,7 +67,7 @@ public static class StaticAnalyzer
         // Grosse Text-/Skriptdateien sind fast immer gebuendelter Programmcode (Webpack, Electron) – zu viele Zufallstreffer.
         if (pe == null && length > 1024 * 1024)
         {
-            f.Detail("Inhaltsanalyse", "uebersprungen (grosse Textdatei)");
+            f.Detail("Inhaltsanalyse", "übersprungen (grosse Textdatei)");
             return;
         }
 
@@ -78,6 +78,6 @@ public static class StaticAnalyzer
             notes.Add($"{sig.Name}: {sig.Explanation}");
         }
 
-        f.Detail("Inhaltsanalyse", notes.Count > 0 ? string.Join(" | ", notes) : "unauffaellig");
+        f.Detail("Inhaltsanalyse", notes.Count > 0 ? string.Join(" | ", notes) : "unauffällig");
     }
 }

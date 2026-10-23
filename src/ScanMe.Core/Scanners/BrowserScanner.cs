@@ -13,7 +13,7 @@ public sealed class BrowserScanner : IScanner
 {
     public string Id => "browser";
     public string Name => "Browser";
-    public string Description => "Erweiterungen, Richtlinien-Hijacking, Benachrichtigungs-Spam und manipulierte Browser-Verknuepfungen.";
+    public string Description => "Erweiterungen, Richtlinien-Hijacking, Benachrichtigungs-Spam und manipulierte Browser-Verknüpfungen.";
     public bool InQuickScan => true;
 
     private sealed record Browser(string Name, string UserDataRelative, string PolicyKey);
@@ -145,9 +145,9 @@ public sealed class BrowserScanner : IScanner
                     Title = $"{b.Name}: Erweiterung per Richtlinie erzwungen ({id})",
                     Location = $@"{key}\ExtensionInstallForcelist",
                     Description = $"Die Erweiterung {id} wird per Gruppenrichtlinie zwangsinstalliert" + (store ? "." : $" – von {updateUrl}."),
-                    Explanation = "Zwangsinstallierte Erweiterungen lassen sich im Browser nicht entfernen. In Firmen normal – auf Privat-PCs ein typisches Zeichen fuer " +
-                                  "Browser-Hijacker und Stealer, die so Passwoerter und Cookies abgreifen.",
-                    Recommendation = "Wenn das kein Firmen-PC ist: Richtlinieneintrag entfernen, Browser neu starten und Passwoerter aendern.",
+                    Explanation = "Zwangsinstallierte Erweiterungen lassen sich im Browser nicht entfernen. In Firmen normal – auf Privat-PCs ein typisches Zeichen für " +
+                                  "Browser-Hijacker und Stealer, die so Passwörter und Cookies abgreifen.",
+                    Recommendation = "Wenn das kein Firmen-PC ist: Richtlinieneintrag entfernen, Browser neu starten und Passwörter ändern.",
                 };
                 f.AddIndicator("FORCED_EXT", "Erweiterung per Richtlinie erzwungen", store ? 35 : 60);
                 f.Detail("Erweiterungs-ID", id).Detail("Update-URL", updateUrl);
@@ -173,9 +173,9 @@ public sealed class BrowserScanner : IScanner
                     Title = $"{b.Name}: Einstellungen per Richtlinie festgelegt",
                     Location = key,
                     Description = string.Join("; ", hijack),
-                    Explanation = "Browser-Hijacker setzen Startseite, Suchmaschine oder Proxy per Richtlinie, damit der Nutzer sie nicht aendern kann. " +
+                    Explanation = "Browser-Hijacker setzen Startseite, Suchmaschine oder Proxy per Richtlinie, damit der Nutzer sie nicht ändern kann. " +
                                   "Der Browser zeigt dann 'Wird von Ihrer Organisation verwaltet'.",
-                    Recommendation = "Wenn das kein Firmen-PC ist: Richtlinienschluessel entfernen.",
+                    Recommendation = "Wenn das kein Firmen-PC ist: Richtlinienschlüssel entfernen.",
                 };
                 bool proxy = hijack.Any(h => h.StartsWith("Proxy"));
                 f.AddIndicator("POLICY_HIJACK", "Browser-Einstellungen per Richtlinie erzwungen", proxy ? 50 : 35);
@@ -239,19 +239,19 @@ public sealed class BrowserScanner : IScanner
             bool allSites = dangerous.Any(p => p.Contains("*") || p == "<all_urls>");
             if (allSites && dangerous.Any(p => p is "cookies" or "webRequest" or "webRequestBlocking" or "debugger" or "proxy" or "scripting"))
                 f.AddIndicator("EXT_POWERFUL", "Darf auf allen Webseiten mitlesen und eingreifen (inkl. Cookies/Netzwerkverkehr)", 15);
-            if (dangerous.Contains("debugger")) f.AddIndicator("EXT_DEBUGGER", "Berechtigung 'debugger' – volle Kontrolle ueber Tabs", 15);
+            if (dangerous.Contains("debugger")) f.AddIndicator("EXT_DEBUGGER", "Berechtigung 'debugger' – volle Kontrolle über Tabs", 15);
             if (dangerous.Contains("proxy")) f.AddIndicator("EXT_PROXY", "Darf den Proxy setzen – kann Datenverkehr umleiten", 15);
             if (dangerous.Contains("nativeMessaging")) f.AddIndicator("EXT_NATIVE", "Kommuniziert mit Programmen ausserhalb des Browsers", 5);
             if (KnownGood.Contains(id)) f.AddIndicator("EXT_KNOWN_GOOD", "Bekannte, weit verbreitete Erweiterung", -40);
 
             int score = f.Indicators.Sum(i => i.Weight);
             f.Description = $"Erweiterung \"{name}\" ({id}) mit {perms.Count} Berechtigung(en).";
-            f.Explanation = "Browser-Erweiterungen sehen alles, was Sie auf Webseiten eingeben – auch Passwoerter und Bankdaten. " +
-                            "Boesartige Erweiterungen sind eine der haeufigsten Ursachen fuer gestohlene Konten.";
+            f.Explanation = "Browser-Erweiterungen sehen alles, was Sie auf Webseiten eingeben – auch Passwörter und Bankdaten. " +
+                            "Bösartige Erweiterungen sind eine der häufigsten Ursachen für gestohlene Konten.";
             f.Recommendation = score >= 35
-                ? "Erweiterung entfernen, wenn Sie sie nicht bewusst installiert haben (Browser → Erweiterungen verwalten). Danach Passwoerter aendern."
-                : "Pruefen, ob Sie die Erweiterung kennen und noch nutzen. Ungenutzte Erweiterungen entfernen.";
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Ordner oeffnen", Target = versionDir, RequiresConfirmation = false });
+                ? "Erweiterung entfernen, wenn Sie sie nicht bewusst installiert haben (Browser → Erweiterungen verwalten). Danach Passwörter ändern."
+                : "Prüfen, ob Sie die Erweiterung kennen und noch nutzen. Ungenutzte Erweiterungen entfernen.";
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Ordner öffnen", Target = versionDir, RequiresConfirmation = false });
 
             // Jede Erweiterung erscheint im Bericht (mindestens als Info) – volle Transparenz.
             string key = $"{b.Name}|{id}";
@@ -312,11 +312,11 @@ public sealed class BrowserScanner : IScanner
         {
             ScannerId = Id,
             Category = FindingCategory.Browser,
-            Title = $"{b.Name}: Webseiten duerfen Benachrichtigungen senden ({allowed.Count})",
+            Title = $"{b.Name}: Webseiten dürfen Benachrichtigungen senden ({allowed.Count})",
             Location = profileDir,
             Description = "Erlaubt: " + string.Join(", ", allowed.Take(20)),
-            Explanation = "Betrueger bringen Nutzer dazu, auf 'Zulassen' zu klicken, und zeigen dann taeglich gefaelschte Warnungen " +
-                          "('Ihr PC ist infiziert', 'Virus gefunden'), die auf Abo-Fallen oder Malware fuehren.",
+            Explanation = "Betrüger bringen Nutzer dazu, auf 'Zulassen' zu klicken, und zeigen dann täglich gefälschte Warnungen " +
+                          "('Ihr PC ist infiziert', 'Virus gefunden'), die auf Abo-Fallen oder Malware führen.",
             Recommendation = $"In {b.Name}: Einstellungen → Datenschutz und Sicherheit → Website-Einstellungen → Benachrichtigungen – unbekannte Seiten entfernen.",
         };
         f.AddIndicator("NOTIFY_SPAM", $"{allowed.Count} unbekannte Seite(n) mit Benachrichtigungsrecht", allowed.Count >= 5 ? 35 : 15);
@@ -352,7 +352,7 @@ public sealed class BrowserScanner : IScanner
                         Location = profile,
                         Description = $"Firefox-Erweiterung \"{name}\" ({id}).",
                         Explanation = "Browser-Erweiterungen sehen alles, was Sie auf Webseiten eingeben.",
-                        Recommendation = "Pruefen, ob Sie die Erweiterung kennen und noch nutzen.",
+                        Recommendation = "Prüfen, ob Sie die Erweiterung kennen und noch nutzen.",
                     };
                     if (signed <= 0) f.AddIndicator("FF_UNSIGNED", "Nicht von Mozilla signiert", 40);
                     if (loc is "app-global" or "winreg-app-global" or "winreg-app-user") f.AddIndicator("FF_EXTERNAL", "Von einem anderen Programm installiert", 25);
@@ -374,8 +374,8 @@ public sealed class BrowserScanner : IScanner
                     Title = "Firefox: Proxy konfiguriert",
                     Location = prefs,
                     Description = string.Join("; ", lines.Select(l => l.Trim())),
-                    Explanation = "Ein Proxy kann den gesamten Webverkehr mitlesen und veraendern.",
-                    Recommendation = "Firefox → Einstellungen → Verbindungseinstellungen pruefen.",
+                    Explanation = "Ein Proxy kann den gesamten Webverkehr mitlesen und verändern.",
+                    Recommendation = "Firefox → Einstellungen → Verbindungseinstellungen prüfen.",
                 };
                 f.AddIndicator("FF_PROXY", "Proxy in Firefox gesetzt", 30);
                 ctx.Add(f);
@@ -416,15 +416,15 @@ public sealed class BrowserScanner : IScanner
                 {
                     ScannerId = Id,
                     Category = FindingCategory.Browser,
-                    Title = $"Manipulierte Browser-Verknuepfung: {Path.GetFileName(lnk)}",
+                    Title = $"Manipulierte Browser-Verknüpfung: {Path.GetFileName(lnk)}",
                     FilePath = lnk,
-                    Description = $"Die Verknuepfung startet {Path.GetFileName(target)} mit: {args}",
-                    Explanation = "Browser-Hijacker haengen an Verknuepfungen eine Webseite, eine Erweiterung (--load-extension) oder einen Proxy an. " +
-                                  "So oeffnet sich bei jedem Start eine Werbe- oder Phishing-Seite.",
-                    Recommendation = "Verknuepfung loeschen und neu aus dem Startmenue anheften.",
+                    Description = $"Die Verknüpfung startet {Path.GetFileName(target)} mit: {args}",
+                    Explanation = "Browser-Hijacker hängen an Verknüpfungen eine Webseite, eine Erweiterung (--load-extension) oder einen Proxy an. " +
+                                  "So öffnet sich bei jedem Start eine Werbe- oder Phishing-Seite.",
+                    Recommendation = "Verknüpfung löschen und neu aus dem Startmenü anheften.",
                 };
-                f.AddIndicator("LNK_HIJACK", "Browser-Verknuepfung mit angehaengter URL/Erweiterung/Proxy", args.Contains("--load-extension") || args.Contains("--proxy") ? 55 : 40);
-                f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "Verknuepfung in Quarantaene", Target = lnk });
+                f.AddIndicator("LNK_HIJACK", "Browser-Verknüpfung mit angehängter URL/Erweiterung/Proxy", args.Contains("--load-extension") || args.Contains("--proxy") ? 55 : 40);
+                f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "Verknüpfung in Quarantäne", Target = lnk });
                 ctx.Add(f);
             }
         }

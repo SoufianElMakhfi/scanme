@@ -130,11 +130,11 @@ public static class UndoJournal
                     break;
             }
             MarkUndone(e.Id);
-            return ActionResult.Ok("Rueckgaengig gemacht: " + e.Description);
+            return ActionResult.Ok("Rückgängig gemacht: " + e.Description);
         }
         catch (Exception ex)
         {
-            return ActionResult.Fail("Rueckgaengig fehlgeschlagen: " + ex.Message);
+            return ActionResult.Fail("Rückgängig fehlgeschlagen: " + ex.Message);
         }
     }
 }

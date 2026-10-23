@@ -16,7 +16,7 @@ public sealed class ProcessScanner : IScanner
 
     public string Id => "processes";
     public string Name => "Laufende Prozesse";
-    public string Description => "Versteckte, getarnte und verdaechtige Prozesse sowie unnoetige Hintergrundprogramme.";
+    public string Description => "Versteckte, getarnte und verdächtige Prozesse sowie unnötige Hintergrundprogramme.";
     public bool InQuickScan => true;
 
     /// <summary>Programme, die Dokumente/Mails oeffnen – starten sie Shells, ist das ein Phishing-Indiz.</summary>
@@ -65,7 +65,7 @@ public sealed class ProcessScanner : IScanner
         foreach (var p in snap.Processes.Values.OrderBy(p => p.Pid))
         {
             ctx.ThrowIfCancelled();
-            if (++i % 20 == 0) ctx.Status($"Pruefe Prozess {i}/{snap.Processes.Count}: {p.Name}");
+            if (++i % 20 == 0) ctx.Status($"Prüfe Prozess {i}/{snap.Processes.Count}: {p.Name}");
             if (SystemProcesses.IsKernelPseudoProcess(p.Name, p.Pid)) continue;
 
             var f = AnalyzeProcess(ctx, snap, p, instanceCounts);
@@ -93,12 +93,12 @@ public sealed class ProcessScanner : IScanner
                 Category = FindingCategory.Process,
                 Title = $"Versteckter Prozess (PID {pid})",
                 ProcessId = pid,
-                Description = $"Der Prozess mit PID {pid} laeuft, taucht aber nicht in der normalen Prozessliste von Windows auf." +
+                Description = $"Der Prozess mit PID {pid} läuft, taucht aber nicht in der normalen Prozessliste von Windows auf." +
                               (path != null ? $" Datei: {path}" : ""),
                 Explanation = "Wenn ein Prozess direkt ansprechbar ist, aber in der Prozessliste fehlt, versteckt ihn vermutlich ein Rootkit. " +
                               "Genau so bleiben Schadprogramme im Task-Manager unsichtbar.",
-                Recommendation = "Den PC mit einem Offline-Scanner pruefen (Microsoft Defender Offline-Scan, startet ausserhalb von Windows). " +
-                                 "Bei Bestaetigung: wichtige Daten sichern und Windows neu installieren.",
+                Recommendation = "Den PC mit einem Offline-Scanner prüfen (Microsoft Defender Offline-Scan, startet ausserhalb von Windows). " +
+                                 "Bei Bestätigung: wichtige Daten sichern und Windows neu installieren.",
             };
             f.AddIndicator("HIDDEN_PROCESS", "Prozess ist vor der Windows-Prozessliste versteckt", 85);
             if (path != null) ExecutableAssessor.Assess(f, path, ctx.Trust);
@@ -122,8 +122,8 @@ public sealed class ProcessScanner : IScanner
                 Title = $"Prozess vor WMI verborgen: {p.Name}",
                 ProcessId = p.Pid,
                 Description = $"{p.Name} (PID {p.Pid}) ist im Kernel sichtbar, wird aber von WMI nicht gemeldet.",
-                Explanation = "Abweichungen zwischen verschiedenen Prozesslisten koennen auf Manipulation hinweisen, aber auch auf sehr kurzlebige Prozesse.",
-                Recommendation = "Scan wiederholen. Tritt der Fund erneut auf, Prozess genauer pruefen.",
+                Explanation = "Abweichungen zwischen verschiedenen Prozesslisten können auf Manipulation hinweisen, aber auch auf sehr kurzlebige Prozesse.",
+                Recommendation = "Scan wiederholen. Tritt der Fund erneut auf, Prozess genauer prüfen.",
             };
             f.AddIndicator("WMI_MISMATCH", "Prozess fehlt in der WMI-Prozessliste", 30);
             if (p.ImagePath != null) ExecutableAssessor.Assess(f, p.ImagePath, ctx.Trust);
@@ -174,7 +174,7 @@ public sealed class ProcessScanner : IScanner
         if (p.ImagePath != null && info is { Exists: false })
         {
             f.Indicators.RemoveAll(x => x.Code == "FILE_MISSING");
-            f.AddIndicator("IMAGE_DELETED", "Die Programmdatei wurde geloescht, waehrend der Prozess weiterlaeuft (typisch fuer Malware)", 50);
+            f.AddIndicator("IMAGE_DELETED", "Die Programmdatei wurde gelöscht, während der Prozess weiterläuft (typisch für Malware)", 50);
         }
 
         // --- Elternprozess-Pruefung fuer Systemprozesse ---
@@ -192,7 +192,7 @@ public sealed class ProcessScanner : IScanner
         if (parent != null && Shells.Contains(p.Name))
         {
             if (DocumentApps.Contains(parent.Name))
-                f.AddIndicator("DOC_SPAWN", $"{parent.Name} hat {p.Name} gestartet – typisch fuer boesartige Makros/Phishing-Anhaenge", 65);
+                f.AddIndicator("DOC_SPAWN", $"{parent.Name} hat {p.Name} gestartet – typisch für bösartige Makros/Phishing-Anhänge", 65);
             else if (Browsers.Contains(parent.Name))
             {
                 // Native-Messaging-Hosts von Erweiterungen werden vom Browser ueber cmd.exe gestartet.
@@ -207,7 +207,7 @@ public sealed class ProcessScanner : IScanner
 
         // --- Skript-Hosts ---
         if (ScriptHosts.Contains(p.Name))
-            f.AddIndicator("SCRIPT_HOST", $"Skript-Host {p.Name} laeuft – wird selten legitim dauerhaft genutzt", 15);
+            f.AddIndicator("SCRIPT_HOST", $"Skript-Host {p.Name} läuft – wird selten legitim dauerhaft genutzt", 15);
 
         // --- Kommandozeile ---
         foreach (var rule in CommandLineRules.Match(p.CommandLine))
@@ -216,14 +216,14 @@ public sealed class ProcessScanner : IScanner
         // --- Unsichtbar im Hintergrund aus Benutzerordner ---
         var loc = LocationClassifier.Classify(p.ImagePath);
         if (!p.HasVisibleWindow && LocationClassifier.IsUserWritable(loc) && info?.Signature != Trust.SignatureState.Valid)
-            f.AddIndicator("HIDDEN_BACKGROUND", "Laeuft unsichtbar im Hintergrund (kein Fenster) aus einem Benutzerordner", 10);
+            f.AddIndicator("HIDDEN_BACKGROUND", "Läuft unsichtbar im Hintergrund (kein Fenster) aus einem Benutzerordner", 10);
 
         // --- Bloat / PUP ---
         var pup = PupCatalog.Find(p.Name);
         if (pup != null)
         {
             f.AddIndicator(pup.Kind == PupCatalog.Kind.Pup ? "PUP" : "BLOAT",
-                pup.Kind == PupCatalog.Kind.Pup ? $"Potenziell unerwuenschtes Programm: {pup.Name}" : $"Unnoetiger Hintergrundprozess: {pup.Name}",
+                pup.Kind == PupCatalog.Kind.Pup ? $"Potenziell unerwünschtes Programm: {pup.Name}" : $"Unnötiger Hintergrundprozess: {pup.Name}",
                 pup.Kind == PupCatalog.Kind.Pup ? 40 : 15);
         }
 
@@ -240,8 +240,8 @@ public sealed class ProcessScanner : IScanner
             : tool != null
                 ? $"{tool.Name} ist {KnownTools.KindText(tool.Kind)}. {tool.Note}"
                 : profile != null && !f.IsProtected
-                    ? $"Der echte {profile.Name}: {profile.Description} Abweichungen bei Pfad, Signatur oder Elternprozess sind ein starkes Indiz fuer Tarnung."
-                    : "Die Bewertung ergibt sich aus den aufgefuehrten Indikatoren.";
+                    ? $"Der echte {profile.Name}: {profile.Description} Abweichungen bei Pfad, Signatur oder Elternprozess sind ein starkes Indiz für Tarnung."
+                    : "Die Bewertung ergibt sich aus den aufgeführten Indikatoren.";
         f.Recommendation = BuildRecommendation(f, pup, tool, critical);
 
         if (!critical && !f.IsProtected)
@@ -252,7 +252,7 @@ public sealed class ProcessScanner : IScanner
 
     private static string BuildDescription(ProcessEntry p, string? publisher)
     {
-        var parts = new List<string> { $"{p.Name} laeuft seit {p.StartTime:g}" };
+        var parts = new List<string> { $"{p.Name} läuft seit {p.StartTime:g}" };
         if (p.ImagePath != null) parts.Add($"aus \"{p.ImagePath}\"");
         if (publisher != null) parts.Add($"Herausgeber: {publisher}");
         if (!p.HasVisibleWindow) parts.Add("ohne sichtbares Fenster");
@@ -263,20 +263,20 @@ public sealed class ProcessScanner : IScanner
     {
         int score = f.Indicators.Sum(x => x.Weight);
         if (critical)
-            return "Kritischer Windows-Prozess – nicht beenden. Falls die Kommandozeile verdaechtig ist, den Ursprung (Autostart, Task) untersuchen.";
+            return "Kritischer Windows-Prozess – nicht beenden. Falls die Kommandozeile verdächtig ist, den Ursprung (Autostart, Task) untersuchen.";
         if (pup is { Kind: PupCatalog.Kind.Bloat } && score < 35)
             return pup.Advice + " Autostart im Task-Manager → Autostart-Apps deaktivieren.";
         if (pup is { Kind: PupCatalog.Kind.Pup })
-            return pup.Advice + " Ueber Einstellungen → Apps → Installierte Apps entfernen.";
+            return pup.Advice + " Über Einstellungen → Apps → Installierte Apps entfernen.";
         if (tool is { Kind: KnownTools.ToolKind.RemoteAccess })
             return "Haben Sie dieses Programm selbst installiert und nutzen es? Falls nicht – oder falls jemand Sie am Telefon dazu aufgefordert hat – " +
-                   "Programm sofort beenden, deinstallieren, Internet trennen und Passwoerter (insb. Online-Banking) von einem anderen Geraet aus aendern.";
+                   "Programm sofort beenden, deinstallieren, Internet trennen und Passwörter (insb. Online-Banking) von einem anderen Gerät aus ändern.";
         if (score >= 60)
-            return "Prozess beenden, Datei in Quarantaene verschieben und den Autostart-Eintrag dazu entfernen. Anschliessend vollstaendigen Defender-Scan ausfuehren " +
-                   "und die Datei auf VirusTotal pruefen.";
+            return "Prozess beenden, Datei in Quarantäne verschieben und den Autostart-Eintrag dazu entfernen. Anschließend vollständigen Defender-Scan ausführen " +
+                   "und die Datei auf VirusTotal prüfen.";
         if (score >= 35)
-            return "Pruefen, ob Sie das Programm kennen. Datei auf VirusTotal pruefen. Unbekannt? Prozess beenden und Datei in Quarantaene verschieben.";
-        return "Wahrscheinlich harmlos, aber auffaellig. Pruefen, ob Sie das Programm kennen und brauchen.";
+            return "Prüfen, ob Sie das Programm kennen. Datei auf VirusTotal prüfen. Unbekannt? Prozess beenden und Datei in Quarantäne verschieben.";
+        return "Wahrscheinlich harmlos, aber auffällig. Prüfen, ob Sie das Programm kennen und brauchen.";
     }
 
     private void ReportResourceHogs(ScanContext ctx, ProcessSnapshot snap)
@@ -296,8 +296,8 @@ public sealed class ProcessScanner : IScanner
                 Title = $"Hohe Systemlast: {p.Name}",
                 ProcessId = p.Pid,
                 Description = $"{p.Name} (PID {p.Pid}) verbraucht {p.CpuPercent:0} % CPU und {TextUtil.FormatBytes(p.WorkingSet)} Arbeitsspeicher.",
-                Explanation = "Dauerhaft hohe Last bremst den PC. Unbekannte Prozesse mit hoher CPU-Last koennen heimliche Krypto-Miner sein.",
-                Recommendation = "Pruefen, ob gerade eine Aufgabe laeuft (Update, Spiel, Rendering). Falls nicht und das Programm unbekannt ist: genauer untersuchen.",
+                Explanation = "Dauerhaft hohe Last bremst den PC. Unbekannte Prozesse mit hoher CPU-Last können heimliche Krypto-Miner sein.",
+                Recommendation = "Prüfen, ob gerade eine Aufgabe läuft (Update, Spiel, Rendering). Falls nicht und das Programm unbekannt ist: genauer untersuchen.",
             };
             f.AddIndicator("RESOURCE", cpu ? "Hohe CPU-Auslastung" : "Hoher Speicherverbrauch", 15);
             if (p.ImagePath != null)
@@ -306,7 +306,7 @@ public sealed class ProcessScanner : IScanner
                 ExecutableAssessor.AddDetails(f, info);
                 if (info.IsWindowsComponent) f.IsProtected = true;
                 if (cpu && info.Signature != Trust.SignatureState.Valid)
-                    f.AddIndicator("MINER_SUSPECT", "Unsignierter Prozess mit hoher CPU-Last (moeglicher Krypto-Miner)", 25);
+                    f.AddIndicator("MINER_SUSPECT", "Unsignierter Prozess mit hoher CPU-Last (möglicher Krypto-Miner)", 25);
             }
             ctx.Add(f);
         }

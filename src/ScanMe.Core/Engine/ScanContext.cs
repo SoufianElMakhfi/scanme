@@ -60,7 +60,7 @@ public sealed class ScanContext
     public void Status(string message) =>
         _progress?.Report(new ScanProgress(CurrentScanner, ScannerIndex, ScannerCount, message));
 
-    /// <summary>Hinweis im Scanprotokoll (z. B. "Ohne Adminrechte eingeschraenkt").</summary>
+    /// <summary>Hinweis im Scanprotokoll (z. B. "Ohne Adminrechte eingeschränkt").</summary>
     public void Note(string message) => CurrentResult?.Notes.Add(message);
 
     /// <summary>Teilt teure Daten (z. B. Prozessliste) zwischen Scannern.</summary>

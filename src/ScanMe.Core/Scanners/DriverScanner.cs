@@ -15,8 +15,8 @@ public sealed class DriverScanner : IScanner
 {
     public string Id => "drivers";
     public string Name => "Treiber & Kernel";
-    public string Description => "Unsignierte und verwundbare Treiber, Testsignaturmodus, Speicherintegritaet.";
-    public bool InQuickScan => false;
+    public string Description => "Unsignierte und verwundbare Treiber, Testsignaturmodus, Speicherintegrität.";
+    public bool InQuickScan => true;
 
     /// <summary>Auswahl bekannt verwundbarer Treiber (loldrivers.io), die zum Abschalten von Sicherheitssoftware missbraucht werden.</summary>
     private static readonly Dictionary<string, string> VulnerableDrivers = new(StringComparer.OrdinalIgnoreCase)
@@ -26,7 +26,7 @@ public sealed class DriverScanner : IScanner
         ["dbutil_2_3.sys"] = "Dell BIOS-Utility (CVE-2021-21551)",
         ["gdrv.sys"] = "Gigabyte (CVE-2018-19320)",
         ["AsrDrv101.sys"] = "ASRock", ["AsrDrv102.sys"] = "ASRock", ["AsrDrv103.sys"] = "ASRock", ["AsrDrv104.sys"] = "ASRock", ["AsrDrv106.sys"] = "ASRock",
-        ["WinRing0x64.sys"] = "WinRing0 (Luefter-/Monitoring-Tools, CVE-2020-14979)",
+        ["WinRing0x64.sys"] = "WinRing0 (Lüfter-/Monitoring-Tools, CVE-2020-14979)",
         ["WinRing0.sys"] = "WinRing0 (CVE-2020-14979)",
         ["iqvw64e.sys"] = "Intel Netzwerkdiagnose (CVE-2015-2291)",
         ["capcom.sys"] = "Capcom Anti-Cheat",
@@ -117,7 +117,7 @@ public sealed class DriverScanner : IScanner
         else if (info.Signature == SignatureState.NotSigned)
             f.AddIndicator("DRV_UNSIGNED", "Unsignierter Kernel-Treiber", 55);
         else if (info.Signature == SignatureState.Invalid)
-            f.AddIndicator("DRV_BAD_SIG", "Treiber mit ungueltiger Signatur: " + info.SignatureStatusText, 60);
+            f.AddIndicator("DRV_BAD_SIG", "Treiber mit ungültiger Signatur: " + info.SignatureStatusText, 60);
         else if (info.IsMicrosoftSigned)
             f.IsProtected = true;
 
@@ -134,7 +134,7 @@ public sealed class DriverScanner : IScanner
             f.AddIndicator("DRV_RENAMED", $"Treiber wurde umbenannt: eigentlich \"{original}\", hier als \"{name}\"",
                 vulnerable ? 45 : info.Signature == SignatureState.Valid ? 5 : 20);
             if (original.StartsWith("WinRing0", StringComparison.OrdinalIgnoreCase))
-                f.AddIndicator("DRV_MINER", "WinRing0 unter falschem Namen ist ein typisches Merkmal von Krypto-Minern (XMRig nutzt ihn fuer CPU-Register)", 25);
+                f.AddIndicator("DRV_MINER", "WinRing0 unter falschem Namen ist ein typisches Merkmal von Krypto-Minern (XMRig nutzt ihn für CPU-Register)", 25);
         }
         if (service != null) f.Detail("Dienstname", service);
 
@@ -144,19 +144,19 @@ public sealed class DriverScanner : IScanner
 
         if (f.Indicators.Sum(i => i.Weight) < 15) return;
         f.Description = $"Kernel-Treiber {path}" + (info.Signer != null ? $", signiert von {info.Signer}." : ".");
-        f.Explanation = "Treiber laufen im Windows-Kern mit uneingeschraenkten Rechten. Rootkits verstecken sich so; Ransomware laedt verwundbare, aber " +
+        f.Explanation = "Treiber laufen im Windows-Kern mit uneingeschränkten Rechten. Rootkits verstecken sich so; Ransomware lädt verwundbare, aber " +
                         "signierte Treiber, um Antivirensoftware zu beenden ('BYOVD').";
         f.Recommendation = f.Indicators.Any(i => i.Code is "DRV_RENAMED" or "DRV_MINER")
-            ? "Der Treiber gehoert sehr wahrscheinlich zu Schadsoftware. Treiberdienst deaktivieren, Datei und das zugehoerige Programm im selben Ordner in Quarantaene verschieben, " +
-              "anschliessend Defender-Offline-Scan ausfuehren. Da das Programm mit Adminrechten lief, Passwoerter von einem anderen Geraet aus aendern."
+            ? "Der Treiber gehört sehr wahrscheinlich zu Schadsoftware. Treiberdienst deaktivieren, Datei und das zugehörige Programm im selben Ordner in Quarantäne verschieben, " +
+              "anschließend Defender-Offline-Scan ausführen. Da das Programm mit Adminrechten lief, Passwörter von einem anderen Gerät aus ändern."
             : f.Indicators.Any(i => i.Code == "DRV_VULNERABLE")
-            ? "Zugehoeriges Programm aktualisieren oder deinstallieren. 'Speicherintegritaet' und die Microsoft-Treiber-Sperrliste aktivieren."
-            : "Herkunft klaeren. Unbekannte, unsignierte Treiber sind ein starkes Rootkit-Indiz – Defender-Offline-Scan ausfuehren.";
-        f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort oeffnen", Target = path, RequiresConfirmation = false });
+            ? "Zugehöriges Programm aktualisieren oder deinstallieren. 'Speicherintegrität' und die Microsoft-Treiber-Sperrliste aktivieren."
+            : "Herkunft klären. Unbekannte, unsignierte Treiber sind ein starkes Rootkit-Indiz – Defender-Offline-Scan ausführen.";
+        f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort öffnen", Target = path, RequiresConfirmation = false });
         if (service != null && !f.IsProtected)
             f.Actions.Insert(0, new RemediationAction { Kind = RemediationKind.DisableService, Label = "Treiberdienst deaktivieren", Target = service });
         if (info.Exists && !info.IsMicrosoftSigned)
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantaene verschieben", Target = path });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantäne verschieben", Target = path });
         ctx.Add(f);
     }
 
@@ -164,22 +164,22 @@ public sealed class DriverScanner : IScanner
     {
         string options = RegistryUtil.GetString(@"HKLM\SYSTEM\CurrentControlSet\Control", "SystemStartOptions")?.ToUpperInvariant() ?? "";
         if (options.Contains("TESTSIGNING"))
-            Add(ctx, "Testsignaturmodus aktiv", 50, "Windows laedt auch Treiber mit Testsignaturen.",
-                "Damit koennen beliebige Treiber (auch Rootkits) geladen werden. Manchmal fuer Entwicklung/Modding aktiviert.",
-                "Als Administrator ausfuehren: bcdedit /set testsigning off – danach neu starten.");
+            Add(ctx, "Testsignaturmodus aktiv", 50, "Windows lädt auch Treiber mit Testsignaturen.",
+                "Damit können beliebige Treiber (auch Rootkits) geladen werden. Manchmal für Entwicklung/Modding aktiviert.",
+                "Als Administrator ausführen: bcdedit /set testsigning off – danach neu starten.");
         if (options.Contains("DISABLE_INTEGRITY_CHECKS") || options.Contains("NOINTEGRITYCHECKS"))
-            Add(ctx, "Treiber-Signaturpruefung deaktiviert", 60, "Die Integritaetspruefung fuer Treiber ist abgeschaltet.",
-                "Unsignierte Kernel-Treiber (Rootkits) koennen geladen werden.",
+            Add(ctx, "Treiber-Signaturprüfung deaktiviert", 60, "Die Integritätsprüfung für Treiber ist abgeschaltet.",
+                "Unsignierte Kernel-Treiber (Rootkits) können geladen werden.",
                 "bcdedit /set nointegritychecks off – danach neu starten.");
 
         if (RegistryUtil.GetInt(@"HKLM\SYSTEM\CurrentControlSet\Control\CI\Config", "VulnerableDriverBlocklistEnable") == 0)
-            Add(ctx, "Sperrliste fuer verwundbare Treiber deaktiviert", 15, "Die Microsoft-Sperrliste fuer bekannte verwundbare Treiber ist aus.",
-                "Die Sperrliste verhindert BYOVD-Angriffe.", "Windows-Sicherheit → Geraetesicherheit → Kernisolierung → 'Sperrliste fuer anfaellige Microsoft-Treiber' einschalten.");
+            Add(ctx, "Sperrliste für verwundbare Treiber deaktiviert", 15, "Die Microsoft-Sperrliste für bekannte verwundbare Treiber ist aus.",
+                "Die Sperrliste verhindert BYOVD-Angriffe.", "Windows-Sicherheit → Gerätesicherheit → Kernisolierung → 'Sperrliste für anfällige Microsoft-Treiber' einschalten.");
 
         if (RegistryUtil.GetInt(@"HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled") is 0 or null)
-            Add(ctx, "Speicherintegritaet (HVCI) ist aus", 8, "Die hypervisorgeschuetzte Codeintegritaet ist nicht aktiv.",
-                "Sie verhindert, dass boesartiger Code in den Windows-Kern eingeschleust wird.",
-                "Windows-Sicherheit → Geraetesicherheit → Kernisolierung → Speicherintegritaet (inkompatible Treiber werden dort angezeigt).");
+            Add(ctx, "Speicherintegrität (HVCI) ist aus", 8, "Die hypervisorgeschützte Codeintegrität ist nicht aktiv.",
+                "Sie verhindert, dass bösartiger Code in den Windows-Kern eingeschleust wird.",
+                "Windows-Sicherheit → Gerätesicherheit → Kernisolierung → Speicherintegrität (inkompatible Treiber werden dort angezeigt).");
     }
 
     private void Add(ScanContext ctx, string title, int weight, string desc, string expl, string rec)

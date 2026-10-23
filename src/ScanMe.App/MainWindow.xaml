@@ -1,12 +1,87 @@
 ﻿<Window x:Class="ScanMe.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ScanMe.App"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        xmlns:vm="clr-namespace:ScanMe.App.ViewModels"
+        xmlns:views="clr-namespace:ScanMe.App.Views"
+        Title="ScanMe – Blue Team" Height="860" Width="1380" MinHeight="640" MinWidth="1080"
+        Background="{StaticResource BgBrush}" WindowStartupLocation="CenterScreen"
+        TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
 
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:DashboardViewModel}"><views:DashboardView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:FindingsViewModel}"><views:FindingsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ProcessesViewModel}"><views:ProcessesView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:QuarantineViewModel}"><views:QuarantineView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView /></DataTemplate>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource BgBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="232" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ===== Seitenleiste ===== -->
+        <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="14,18">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,0,0,26">
+                    <Path Width="30" Height="34" Stretch="Uniform" Fill="{StaticResource AccentBrush}"
+                          Data="M12,1 L3,5 V11 C3,16.55 6.84,21.74 12,23 C17.16,21.74 21,16.55 21,11 V5 Z M10,17 L6,13 L7.41,11.59 L10,14.17 L16.59,7.58 L18,9 Z" />
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="ScanMe" FontSize="19" FontWeight="Bold" />
+                        <TextBlock Text="BLUE TEAM" Style="{StaticResource Label}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom">
+                    <Border CornerRadius="8" Padding="10" Background="{StaticResource Surface2Brush}"
+                            Visibility="{Binding IsElevated, Converter={StaticResource InvVis}}" Margin="0,0,0,10">
+                        <TextBlock Style="{StaticResource Body}" FontSize="12" Foreground="{StaticResource MediumBrush}"
+                                   Text="Ohne Adminrechte gestartet – der Scan ist eingeschränkt. Bitte als Administrator ausführen." />
+                    </Border>
+                    <TextBlock Text="{Binding MachineName}" Style="{StaticResource Muted}" FontSize="12" Margin="6,0" />
+                    <TextBlock Text="{Binding OsDescription}" Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="6,2,6,0" />
+                </StackPanel>
+
+                <StackPanel>
+                    <RadioButton Style="{StaticResource NavButton}" Content="Übersicht" IsChecked="True" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="Dashboard" x:Name="NavDashboard" />
+                    <RadioButton Style="{StaticResource NavButton}" Content="Funde" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="Findings" x:Name="NavFindings" />
+                    <RadioButton Style="{StaticResource NavButton}" Content="Prozesse (live)" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="Processes" />
+                    <RadioButton Style="{StaticResource NavButton}" Content="Quarantäne &amp; Verlauf" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="Quarantine" />
+                    <RadioButton Style="{StaticResource NavButton}" Content="Einstellungen" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="Settings" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ===== Inhalt ===== -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Scan-Fortschritt (global sichtbar) -->
+            <Border Visibility="{Binding IsScanning, Converter={StaticResource Vis}}" Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,12">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Abbrechen" Command="{Binding CancelScanCommand}" Margin="16,0,0,0" />
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding ScanPercent, StringFormat={}{0:0} %}" Style="{StaticResource Muted}" />
+                            <TextBlock Text="{Binding ScanStatus}" FontWeight="SemiBold" />
+                        </DockPanel>
+                        <ProgressBar Value="{Binding ScanPercent}" Maximum="100" Margin="0,8,0,6" />
+                        <TextBlock Text="{Binding ScanStep}" Style="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <ContentControl Grid.Row="1" Content="{Binding CurrentPage}" />
+        </Grid>
     </Grid>
 </Window>

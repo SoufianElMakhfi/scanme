@@ -92,7 +92,7 @@ public sealed class FileTrustService
             signer = pkgSigner;
             org = pkgOrg;
             issuer = pkgOrg != null && pkgOrg.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) ? "Microsoft" : null;
-            statusText = "Gueltig (signiertes App-Paket / Microsoft Store)";
+            statusText = "Gültig (signiertes App-Paket / Microsoft Store)";
         }
 
         bool isMicrosoft = state == SignatureState.Valid
@@ -115,7 +115,7 @@ public sealed class FileTrustService
             Path = path,
             Exists = true,
             Signature = state,
-            SignatureStatusText = statusText ?? (catalog ? "Gueltig (Windows-Katalog)" : WinTrust.Describe(hr)),
+            SignatureStatusText = statusText ?? (catalog ? "Gültig (Windows-Katalog)" : WinTrust.Describe(hr)),
             IsCatalogSigned = catalog,
             Signer = signer,
             SignerOrganization = org,

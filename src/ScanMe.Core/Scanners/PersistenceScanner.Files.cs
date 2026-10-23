@@ -55,10 +55,10 @@ public sealed partial class PersistenceScanner
                         f.AddIndicator("SCRIPT_STARTUP", $"Skriptdatei ({ext}) direkt im Autostart-Ordner", 30);
                         ScanScriptContent(f, file);
                     }
-                    f.Detail("Verknuepfung", file);
+                    f.Detail("Verknüpfung", file);
                 });
                 if (f != null && !f.Actions.Any(a => a.Kind == RemediationKind.QuarantineFile && a.Target == file))
-                    f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "Autostart-Datei in Quarantaene", Target = file });
+                    f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "Autostart-Datei in Quarantäne", Target = file });
             }
         }
     }
@@ -93,7 +93,7 @@ public sealed partial class PersistenceScanner
         }
         catch
         {
-            ctx.Note("Aufgabenordner nicht lesbar – fuer geplante Tasks werden Adminrechte benoetigt.");
+            ctx.Note("Aufgabenordner nicht lesbar – für geplante Tasks werden Adminrechte benötigt.");
             return;
         }
         if (!ctx.IsElevated) ctx.Note("Ohne Adminrechte sind viele geplante Aufgaben nicht lesbar.");
@@ -145,9 +145,9 @@ public sealed partial class PersistenceScanner
                     if (hidden && !isMicrosoftTask) f.AddIndicator("TASK_HIDDEN_FLAG", "Aufgabe ist als 'versteckt' markiert", 15);
                     if (isMicrosoftTask && !f.IsProtected && f.FilePath != null)
                         f.AddIndicator("TASK_MS_FOLDER", "Liegt im Microsoft-Aufgabenordner, startet aber keine Windows-Komponente (Tarnung?)", 15);
-                    if (highest && runAs is "S-1-5-18" or "SYSTEM") f.AddIndicator("TASK_SYSTEM", "Laeuft mit SYSTEM-Rechten", 5);
-                    f.Detail("Ausloeser", string.Join(", ", triggers))
-                     .Detail("Ausfuehren als", runAs)
+                    if (highest && runAs is "S-1-5-18" or "SYSTEM") f.AddIndicator("TASK_SYSTEM", "Läuft mit SYSTEM-Rechten", 5);
+                    f.Detail("Auslöser", string.Join(", ", triggers))
+                     .Detail("Ausführen als", runAs)
                      .Detail("Autor", author)
                      .Detail("Beschreibung", description)
                      .Detail("Aufgabendatei", file);
@@ -208,10 +208,10 @@ public sealed partial class PersistenceScanner
                 Location = key,
                 Description = !hasSd
                     ? $"Die Aufgabe \"{rel}\" existiert in der Registry, ihr Sicherheitsdeskriptor wurde jedoch entfernt. Sie ist dadurch in der Aufgabenplanung unsichtbar."
-                    : $"Die Aufgabe \"{rel}\" ist in der Registry registriert, die zugehoerige Aufgabendatei fehlt.",
+                    : $"Die Aufgabe \"{rel}\" ist in der Registry registriert, die zugehörige Aufgabendatei fehlt.",
                 Explanation = "Das gezielte Verstecken geplanter Aufgaben ist eine bekannte Technik staatlicher Angreifergruppen (z. B. 'Tarrask' der Gruppe HAFNIUM). " +
                               "Legitime Software macht das nicht.",
-                Recommendation = "Aufgabe untersuchen (Registry-Schluessel TaskCache\\Tasks\\" + id + "), zugehoerige Programme in Quarantaene verschieben und den PC gruendlich pruefen.",
+                Recommendation = "Aufgabe untersuchen (Registry-Schluessel TaskCache\\Tasks\\" + id + "), zugehörige Programme in Quarantäne verschieben und den PC gründlich prüfen.",
             };
             f.AddIndicator(hasSd ? "TASK_NO_FILE" : "TASK_NO_SD",
                 hasSd ? "Aufgabe ohne Aufgabendatei" : "Aufgabe ohne Sicherheitsdeskriptor (bewusst versteckt)", hasSd ? 25 : 80);
@@ -315,10 +315,10 @@ public sealed partial class PersistenceScanner
                         string? query = filterName != null && filters.TryGetValue(filterName, out var q) ? q : null;
 
                         var f = Evaluate(ctx, new Entry("WMI-Abonnement", $"{cls}: {name}", @"root\subscription", command, 55,
-                            "WMI-Ereignisabonnement fuehrt Code aus (dateilose Persistenz)"), f =>
+                            "WMI-Ereignisabonnement führt Code aus (dateilose Persistenz)"), f =>
                         {
                             if (binding.Consumer.Length == 0) f.AddIndicator("WMI_UNBOUND", "Consumer ohne Bindung (inaktiv / Rest)", -20);
-                            f.Detail("Ausloeser (WQL)", query).Detail("Consumer-Klasse", cls);
+                            f.Detail("Auslöser (WQL)", query).Detail("Consumer-Klasse", cls);
                         });
                         f?.Actions.Insert(0, new RemediationAction
                         {
@@ -388,7 +388,7 @@ public sealed partial class PersistenceScanner
                 Title = $"Bedienungshilfe ersetzt: {exe}",
                 FilePath = path,
                 Description = $"{exe} ist nicht die originale Windows-Datei" + (orig != null ? $" (eigentlich: {orig})." : "."),
-                Explanation = "Angreifer ersetzen Bedienungshilfen (z. B. Einrastfunktion via 5x Shift) durch cmd.exe. Dann erhaelt jeder am " +
+                Explanation = "Angreifer ersetzen Bedienungshilfen (z. B. Einrastfunktion via 5x Shift) durch cmd.exe. Dann erhält jeder am " +
                               "Anmeldebildschirm ohne Passwort eine Kommandozeile mit SYSTEM-Rechten.",
                 Recommendation = "Datei sofort mit 'sfc /scannow' (als Administrator) wiederherstellen lassen. Den PC als kompromittiert betrachten.",
             };
@@ -425,14 +425,14 @@ public sealed partial class PersistenceScanner
                 Title = $"PowerShell-Profil: {Path.GetFileName(file)}",
                 FilePath = file,
                 Location = Path.GetDirectoryName(file),
-                Description = $"Das PowerShell-Profil {file} wird bei jedem Start von PowerShell ausgefuehrt.",
-                Explanation = "Profile sind fuer Anpassungen gedacht, werden aber auch als unauffaelliger Persistenzort genutzt (MITRE T1546.013).",
-                Recommendation = "Inhalt pruefen. Wenn Sie das Profil nicht selbst angelegt haben: Datei in Quarantaene verschieben.",
+                Description = $"Das PowerShell-Profil {file} wird bei jedem Start von PowerShell ausgeführt.",
+                Explanation = "Profile sind für Anpassungen gedacht, werden aber auch als unauffälliger Persistenzort genutzt (MITRE T1546.013).",
+                Recommendation = "Inhalt prüfen. Wenn Sie das Profil nicht selbst angelegt haben: Datei in Quarantäne verschieben.",
             };
             f.AddIndicator("PS_PROFILE", "PowerShell-Profil vorhanden", 5);
             ScanScriptContent(f, file);
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort oeffnen", Target = file, RequiresConfirmation = false });
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantaene verschieben", Target = file });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort öffnen", Target = file, RequiresConfirmation = false });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantäne verschieben", Target = file });
             ctx.Add(f);
         }
     }

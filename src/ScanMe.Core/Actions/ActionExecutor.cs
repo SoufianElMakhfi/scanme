@@ -83,7 +83,7 @@ public static class ActionExecutor
         data[0] = 0x03; // ungerade = deaktiviert
         BitConverter.GetBytes(DateTime.Now.ToFileTime()).CopyTo(data, 4);
         k.SetValue(valueName, data, RegistryValueKind.Binary);
-        return ActionResult.Ok($"Autostart '{valueName}' deaktiviert (wie im Task-Manager; rueckgaengig machbar).");
+        return ActionResult.Ok($"Autostart '{valueName}' deaktiviert (wie im Task-Manager; rückgängig machbar).");
     }
 
     private static ActionResult DeleteRegistryValue(string key, string name)
@@ -97,14 +97,14 @@ public static class ActionExecutor
         UndoJournal.BackupRegistryValue(key, name, $"Registry-Wert '{name}' entfernt ({key})");
         using var k = RegistryUtil.Open(key, writable: true) ?? throw new UnauthorizedAccessException();
         k.DeleteValue(name, false);
-        return ActionResult.Ok($"Registry-Wert '{name}' entfernt. Sicherung im Rueckgaengig-Verlauf.");
+        return ActionResult.Ok($"Registry-Wert '{name}' entfernt. Sicherung im Rückgängig-Verlauf.");
     }
 
     /// <summary>Argument "Name=Wert": setzt einen Registry-Wert gezielt (z. B. Windows-Standard wiederherstellen).</summary>
     private static ActionResult SetRegistryValue(string key, string assignment)
     {
         int eq = assignment.IndexOf('=');
-        if (eq <= 0) return ActionResult.Fail("Ungueltige Zuweisung.");
+        if (eq <= 0) return ActionResult.Fail("Ungültige Zuweisung.");
         string name = assignment[..eq];
         string value = assignment[(eq + 1)..];
 
@@ -118,7 +118,7 @@ public static class ActionExecutor
             k.SetValue(name, int.Parse(value), RegistryValueKind.DWord);
         else
             k.SetValue(name, value, existingKind ?? RegistryValueKind.String);
-        return ActionResult.Ok($"'{name}' gesetzt. Rueckgaengig machbar.");
+        return ActionResult.Ok($"'{name}' gesetzt. Rückgängig machbar.");
     }
 
     private static ActionResult DisableTask(string taskPath)
@@ -126,7 +126,7 @@ public static class ActionExecutor
         var (code, output) = RunTool("schtasks.exe", $"/Change /TN \"{taskPath}\" /DISABLE");
         if (code != 0) return ActionResult.Fail("Aufgabe konnte nicht deaktiviert werden: " + output.Trim());
         UndoJournal.Add(new UndoEntry { Kind = UndoKind.TaskEnable, Target = taskPath, Description = $"Geplante Aufgabe '{taskPath}' deaktiviert" });
-        return ActionResult.Ok("Aufgabe deaktiviert (nicht geloescht – rueckgaengig machbar).");
+        return ActionResult.Ok("Aufgabe deaktiviert (nicht gelöscht – rückgängig machbar).");
     }
 
     private static ActionResult DisableService(string name)
@@ -141,7 +141,7 @@ public static class ActionExecutor
         using (var k = RegistryUtil.Open(key, writable: true) ?? throw new UnauthorizedAccessException())
             k.SetValue("Start", 4, RegistryValueKind.DWord);
         UndoJournal.Add(new UndoEntry { Kind = UndoKind.ServiceStart, Target = name, PreviousValue = previous.ToString(), Description = $"Dienst '{name}' deaktiviert" });
-        return ActionResult.Ok($"Dienst '{name}' gestoppt und deaktiviert. Rueckgaengig machbar.");
+        return ActionResult.Ok($"Dienst '{name}' gestoppt und deaktiviert. Rückgängig machbar.");
     }
 
     private static ActionResult RemoveWmi(string consumerPath, string? filterName)
@@ -165,7 +165,7 @@ public static class ActionExecutor
             }
             catch { }
         }
-        return ActionResult.Ok($"WMI-Abonnement entfernt ({removed} Objekte). Hinweis: nicht rueckgaengig machbar.");
+        return ActionResult.Ok($"WMI-Abonnement entfernt ({removed} Objekte). Hinweis: nicht rückgängig machbar.");
     }
 
     private static ActionResult RemoveExclusion(string value, string parameter)
@@ -189,8 +189,8 @@ public static class ActionExecutor
         File.WriteAllText(hostsPath, DefaultHosts);
         File.SetAttributes(hostsPath, attrs & ~FileAttributes.ReadOnly);
         RunTool("ipconfig.exe", "/flushdns");
-        UndoJournal.Add(new UndoEntry { Kind = UndoKind.HostsFile, Target = hostsPath, PreviousValue = backup, Description = "Hosts-Datei auf Standard zurueckgesetzt" });
-        return ActionResult.Ok($"Hosts-Datei zurueckgesetzt. Sicherung: {backup}");
+        UndoJournal.Add(new UndoEntry { Kind = UndoKind.HostsFile, Target = hostsPath, PreviousValue = backup, Description = "Hosts-Datei auf Standard zurückgesetzt" });
+        return ActionResult.Ok($"Hosts-Datei zurückgesetzt. Sicherung: {backup}");
     }
 
     private static ActionResult DefenderScan(string path)
@@ -209,14 +209,14 @@ public static class ActionExecutor
             Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
         else
             return ActionResult.Fail("Pfad existiert nicht.");
-        return ActionResult.Ok("Explorer geoeffnet.");
+        return ActionResult.Ok("Explorer geöffnet.");
     }
 
     private static ActionResult LookupOnline(string sha256)
     {
         // Es wird nur der Hash nachgeschlagen – die Datei selbst wird NICHT hochgeladen.
         Process.Start(new ProcessStartInfo($"https://www.virustotal.com/gui/file/{sha256}") { UseShellExecute = true });
-        return ActionResult.Ok("VirusTotal im Browser geoeffnet (nur der Hash wird uebertragen, nicht die Datei).");
+        return ActionResult.Ok("VirusTotal im Browser geöffnet (nur der Hash wird übertragen, nicht die Datei).");
     }
 
     internal static (int ExitCode, string Output) RunTool(string exe, string args)

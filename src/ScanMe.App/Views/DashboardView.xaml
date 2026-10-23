@@ -1,0 +1,157 @@
+<UserControl x:Class="ScanMe.App.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="clr-namespace:ScanMe.App">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="28,24,28,28">
+            <TextBlock Text="Übersicht" Style="{StaticResource H1}" />
+            <TextBlock Text="Vollständige Sicherheitsanalyse: Prozesse, Autostarts, Netzwerk, Malware, Phishing-Spuren, Einstellungen und Stabilität."
+                       Style="{StaticResource Muted}" Margin="0,4,0,20" />
+
+            <!-- Status + Scan-Buttons -->
+            <Border Style="{StaticResource Card}" Padding="24">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Width="150" Height="150">
+                        <app:RingGauge Value="{Binding Health}" Thickness="13" Track="{StaticResource Surface3Brush}"
+                                       Stroke="{Binding Health, Converter={StaticResource HealthBrush}}"
+                                       Visibility="{Binding HasReport, Converter={StaticResource Vis}}" />
+                        <app:RingGauge Value="0" Thickness="13" Track="{StaticResource Surface3Brush}"
+                                       Visibility="{Binding HasReport, Converter={StaticResource InvVis}}" />
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding Health}" FontSize="40" FontWeight="Bold" HorizontalAlignment="Center"
+                                       Visibility="{Binding HasReport, Converter={StaticResource Vis}}" />
+                            <TextBlock Text="–" FontSize="40" FontWeight="Bold" HorizontalAlignment="Center" Style="{StaticResource Muted}"
+                                       Visibility="{Binding HasReport, Converter={StaticResource InvVis}}" />
+                            <TextBlock Text="SICHERHEIT" Style="{StaticResource Label}" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,24,0">
+                        <TextBlock Text="{Binding Verdict}" Style="{StaticResource H1}" FontSize="22" />
+                        <TextBlock Text="{Binding VerdictDetail}" Style="{StaticResource Body}" Foreground="{StaticResource MutedBrush}" Margin="0,6,0,10" />
+                        <TextBlock Text="{Binding LastScan, StringFormat=Letzter Scan: {0}}" Style="{StaticResource Muted}" FontSize="12" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Width="230">
+                        <Button Style="{StaticResource PrimaryButton}" Command="{Binding Main.StartFullScanCommand}" Padding="16,12">
+                            <StackPanel>
+                                <TextBlock Text="Vollständiger Scan" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="Alles prüfen · ca. 1–5 Min." FontSize="11" Foreground="#DDE6FF" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding Main.StartQuickScanCommand}" Margin="0,10,0,0" Padding="16,10">
+                            <StackPanel>
+                                <TextBlock Text="Schnellscan" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                <TextBlock Text="Prozesse, Autostart, Netzwerk · &lt; 1 Min." FontSize="11" Style="{StaticResource Muted}" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Zaehler -->
+            <UniformGrid Columns="5" Margin="0,16,0,0">
+                <UniformGrid.Resources>
+                    <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                        <Setter Property="Margin" Value="0,0,12,0" />
+                        <Setter Property="Padding" Value="16,14" />
+                    </Style>
+                </UniformGrid.Resources>
+                <Border>
+                    <StackPanel>
+                        <TextBlock Text="KRITISCH" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding Critical}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource CriticalBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border>
+                    <StackPanel>
+                        <TextBlock Text="HOCH" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding High}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource HighBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border>
+                    <StackPanel>
+                        <TextBlock Text="MITTEL" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding Medium}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource MediumBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border>
+                    <StackPanel>
+                        <TextBlock Text="NIEDRIG" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding Low}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource LowBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border Margin="0">
+                    <StackPanel>
+                        <TextBlock Text="INFO / OPTIMIERUNG" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding Info}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource InfoBrush}" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Wichtigste Funde -->
+            <Grid Margin="0,16,0,0" Visibility="{Binding HasReport, Converter={StaticResource Vis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource Card}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="Wichtigste Funde" Style="{StaticResource H2}" Margin="0,0,0,12" />
+                        <TextBlock Text="Keine Funde mit mittlerer oder höherer Priorität. 👍" Style="{StaticResource Muted}"
+                                   Visibility="{Binding TopFindings.Count, Converter={StaticResource InvVis}}" />
+                        <ItemsControl ItemsSource="{Binding TopFindings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" HorizontalContentAlignment="Stretch" Margin="0,0,0,8" Padding="12,10"
+                                            Background="{StaticResource Surface2Brush}">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}"
+                                                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                                    <ContentPresenter />
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Left" Width="4" CornerRadius="2" Background="{Binding Severity, Converter={StaticResource SevBrush}}" Margin="0,0,12,0" />
+                                            <Border DockPanel.Dock="Right" CornerRadius="5" Padding="8,2" VerticalAlignment="Center"
+                                                    Background="{Binding Severity, Converter={StaticResource SevBrush}}">
+                                                <TextBlock Text="{Binding Severity, Converter={StaticResource SevText}}" FontSize="11" FontWeight="Bold" Foreground="#111" />
+                                            </Border>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Nach Bereich" Style="{StaticResource H2}" Margin="0,0,0,12" />
+                        <ItemsControl ItemsSource="{Binding CategorySummary}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" Margin="0,3" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource Body}" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="0,16,0,0"
+                                   Text="Windows-Komponenten werden automatisch erkannt und geschützt: ScanMe löscht oder beendet nie verifizierte Systemdateien oder kritische Prozesse." />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

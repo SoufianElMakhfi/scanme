@@ -46,7 +46,7 @@ public static class ExecutableAssessor
 
         if (!info.Exists)
         {
-            f.AddIndicator("FILE_MISSING", "Die referenzierte Datei existiert nicht (verwaister Eintrag oder geloeschte Malware)", 10);
+            f.AddIndicator("FILE_MISSING", "Die referenzierte Datei existiert nicht (verwaister Eintrag oder gelöschte Malware)", 10);
             return info;
         }
 
@@ -62,24 +62,24 @@ public static class ExecutableAssessor
             case SignatureState.Valid when info.IsWindowsComponent && LolBins.Contains(fileName):
                 // Nicht IsProtected: ein boesartiger PowerShell-Prozess darf beendet werden.
                 // Die Datei selbst schuetzt AddFileActions (keine Quarantaene fuer Microsoft-Dateien).
-                f.AddIndicator("SIG_WINDOWS_HOST", $"Windows-Werkzeug {fileName} (selbst harmlos – bewertet wird der ausgefuehrte Befehl)", 0);
+                f.AddIndicator("SIG_WINDOWS_HOST", $"Windows-Werkzeug {fileName} (selbst harmlos – bewertet wird der ausgeführte Befehl)", 0);
                 break;
             case SignatureState.Valid when info.IsWindowsComponent:
                 f.IsProtected = true;
                 f.AddIndicator("SIG_WINDOWS", "Verifizierte Windows-Komponente (Microsoft-signiert, Windows-Verzeichnis)", -60);
                 break;
             case SignatureState.Valid when info.IsMicrosoftSigned:
-                f.AddIndicator("SIG_MICROSOFT", "Gueltig von Microsoft signiert", -40);
+                f.AddIndicator("SIG_MICROSOFT", "Gültig von Microsoft signiert", -40);
                 break;
             case SignatureState.Valid:
-                f.AddIndicator("SIG_VALID", $"Gueltig signiert von \"{info.Signer}\"", -25);
+                f.AddIndicator("SIG_VALID", $"Gültig signiert von \"{info.Signer}\"", -25);
                 break;
             case SignatureState.NotSigned:
                 f.AddIndicator("SIG_NONE", "Datei ist nicht digital signiert", LocationClassifier.IsUserWritable(loc) ? 25 : 15);
                 break;
             case SignatureState.Invalid:
                 bool tampered = info.SignatureStatusText.Contains("manipuliert");
-                f.AddIndicator("SIG_INVALID", $"Ungueltige Signatur: {info.SignatureStatusText}", tampered ? 60 : 40);
+                f.AddIndicator("SIG_INVALID", $"Ungültige Signatur: {info.SignatureStatusText}", tampered ? 60 : 40);
                 break;
         }
 
@@ -107,7 +107,7 @@ public static class ExecutableAssessor
 
         // --- Unicode Right-to-Left-Override im Namen (gnp.exe -> exe.png) ---
         if (fileName.Contains(RightToLeftOverride))
-            f.AddIndicator("RTLO", "Dateiname enthaelt ein unsichtbares Umkehrzeichen (RTLO) zur Tarnung der Endung", 60);
+            f.AddIndicator("RTLO", "Dateiname enthält ein unsichtbares Umkehrzeichen (RTLO) zur Tarnung der Endung", 60);
 
         // --- Systemprozess-Imitation ---
         var lookalike = SystemProcesses.FindLookalike(fileName);
@@ -118,7 +118,7 @@ public static class ExecutableAssessor
         if (profile != null && profile.ExpectedDirs.Length > 0 && !info.IsWindowsComponent
             && !profile.ExpectedDirs.Any(d => string.Equals(Path.GetDirectoryName(info.Path), d, StringComparison.OrdinalIgnoreCase)))
         {
-            f.AddIndicator("MASQUERADE", $"Traegt den Namen eines Windows-Systemprozesses, liegt aber nicht in {string.Join(" / ", profile.ExpectedDirs)}", 70);
+            f.AddIndicator("MASQUERADE", $"Trägt den Namen eines Windows-Systemprozesses, liegt aber nicht in {string.Join(" / ", profile.ExpectedDirs)}", 70);
         }
 
         // --- Umbenanntes Systemwerkzeug ---
@@ -141,7 +141,7 @@ public static class ExecutableAssessor
 
         // --- Frisch erstellt ---
         if (info.Signature != SignatureState.Valid && info.Created is { } created && (DateTime.Now - created).TotalDays < 7)
-            f.AddIndicator("RECENT", $"Erst kuerzlich erstellt ({created:g})", 8);
+            f.AddIndicator("RECENT", $"Erst kürzlich erstellt ({created:g})", 8);
 
         // --- Bekannte Werkzeuge ---
         var tool = KnownTools.FindByProcessName(fileName);
@@ -173,9 +173,9 @@ public static class ExecutableAssessor
          .Detail("Version", info.FileVersion)
          .Detail("Originalname", info.OriginalFilename)
          .Detail("SHA256", info.Sha256)
-         .Detail("Groesse", info.Exists ? Util.TextUtil.FormatBytes(info.Size) : null)
+         .Detail("Größe", info.Exists ? Util.TextUtil.FormatBytes(info.Size) : null)
          .Detail("Erstellt", info.Created?.ToString("g"))
-         .Detail("Geaendert", info.Modified?.ToString("g"))
+         .Detail("Geändert", info.Modified?.ToString("g"))
          .Detail("Download-Quelle", info.DownloadUrl)
          .Detail("Download-Referrer", info.DownloadReferrer);
     }
@@ -184,13 +184,13 @@ public static class ExecutableAssessor
     {
         if (!info.Exists) return;
         if (!f.Actions.Any(a => a.Kind == RemediationKind.OpenLocation))
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort oeffnen", Target = info.Path, RequiresConfirmation = false });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort öffnen", Target = info.Path, RequiresConfirmation = false });
         if (info.Sha256 != null && !f.Actions.Any(a => a.Kind == RemediationKind.LookupOnline))
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.LookupOnline, Label = "Auf VirusTotal pruefen", Target = info.Sha256, RequiresConfirmation = false });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.LookupOnline, Label = "Auf VirusTotal prüfen", Target = info.Sha256, RequiresConfirmation = false });
         if (!f.Actions.Any(a => a.Kind == RemediationKind.DefenderScanFile))
             f.Actions.Add(new RemediationAction { Kind = RemediationKind.DefenderScanFile, Label = "Mit Defender scannen", Target = info.Path, RequiresConfirmation = false });
         if (!info.IsWindowsComponent && !info.IsMicrosoftSigned && !f.Actions.Any(a => a.Kind == RemediationKind.QuarantineFile))
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantaene verschieben", Target = info.Path });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantäne verschieben", Target = info.Path });
     }
 
     private static bool PathIsExecutable(string fileName) =>

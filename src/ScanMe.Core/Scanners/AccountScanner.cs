@@ -12,7 +12,7 @@ public sealed class AccountScanner : IScanner
 {
     public string Id => "accounts";
     public string Name => "Benutzerkonten";
-    public string Description => "Versteckte, neue oder ungeschuetzte Konten und Mitglieder der Administratorgruppe.";
+    public string Description => "Versteckte, neue oder ungeschützte Konten und Mitglieder der Administratorgruppe.";
     public bool InQuickScan => true;
 
     private sealed record Account(string Name, string Sid, bool Disabled, bool PasswordRequired, bool Lockout);
@@ -71,10 +71,10 @@ public sealed class AccountScanner : IScanner
                 if (a.Sid.EndsWith("-501"))
                     f.AddIndicator("GUEST_ON", "Gastkonto ist aktiviert", 35);
                 if (a.Sid.EndsWith("-500"))
-                    f.AddIndicator("BUILTIN_ADMIN_ON", "Eingebautes Administratorkonto ist aktiviert (beliebtes Ziel fuer Passwortraten)", 25);
+                    f.AddIndicator("BUILTIN_ADMIN_ON", "Eingebautes Administratorkonto ist aktiviert (beliebtes Ziel für Passwortraten)", 25);
                 // Das Flag ist bei Microsoft-Konten/PIN-Anmeldung haeufig gesetzt und allein wenig aussagekraeftig.
                 if (!a.PasswordRequired)
-                    f.AddIndicator("NO_PASSWORD", "Konto-Flag 'kein Passwort erforderlich' gesetzt (bei Microsoft-Konten haeufig normal)", isAdmin && !builtin ? 5 : 10);
+                    f.AddIndicator("NO_PASSWORD", "Konto-Flag 'kein Passwort erforderlich' gesetzt (bei Microsoft-Konten häufig normal)", isAdmin && !builtin ? 5 : 10);
                 if (isAdmin && !builtin && created is { } c && (DateTime.Now - c).TotalDays < 14)
                     f.AddIndicator("NEW_ADMIN", $"Neues Administratorkonto (Profil angelegt am {c:d})", 25);
                 if (isAdmin && created == null && !builtin)
@@ -83,8 +83,8 @@ public sealed class AccountScanner : IScanner
 
             if (f.Indicators.Sum(i => i.Weight) < 15) continue;
             f.Description = $"Lokales Konto '{a.Name}'{(isAdmin ? " (Administrator)" : "")}, {(a.Disabled ? "deaktiviert" : "aktiv")}.";
-            f.Explanation = "Nach einem Einbruch legen Angreifer haeufig eigene, moeglichst unauffaellige Konten an, um jederzeit zurueckzukommen (MITRE T1136).";
-            f.Recommendation = "Kennen Sie dieses Konto? Falls nicht: In 'Computerverwaltung → Lokale Benutzer und Gruppen' deaktivieren, danach alle Passwoerter aendern.";
+            f.Explanation = "Nach einem Einbruch legen Angreifer häufig eigene, möglichst unauffällige Konten an, um jederzeit zurückzukommen (MITRE T1136).";
+            f.Recommendation = "Kennen Sie dieses Konto? Falls nicht: In 'Computerverwaltung → Lokale Benutzer und Gruppen' deaktivieren, danach alle Passwörter ändern.";
             ctx.Add(f);
         }
 
@@ -97,8 +97,8 @@ public sealed class AccountScanner : IScanner
                 Category = FindingCategory.Account,
                 Title = "Viele Administratorkonten",
                 Description = $"{activeAdmins} aktive Konten haben Administratorrechte: {string.Join(", ", accounts.Where(a => !a.Disabled && admins.Contains(a.Name)).Select(a => a.Name))}.",
-                Explanation = "Jedes Admin-Konto ist ein moegliches Einfallstor. Fuer den Alltag empfiehlt sich ein Standardkonto.",
-                Recommendation = "Nicht benoetigte Admin-Konten zu Standardbenutzern herabstufen.",
+                Explanation = "Jedes Admin-Konto ist ein mögliches Einfallstor. Für den Alltag empfiehlt sich ein Standardkonto.",
+                Recommendation = "Nicht benötigte Admin-Konten zu Standardbenutzern herabstufen.",
             };
             f.AddIndicator("MANY_ADMINS", "Mehr als zwei aktive Administratoren", 15);
             ctx.Add(f);

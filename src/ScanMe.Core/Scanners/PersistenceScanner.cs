@@ -93,7 +93,7 @@ public sealed partial class PersistenceScanner : IScanner
         {
             info = ExecutableAssessor.Assess(f, payload, ctx.Trust);
             f.Detail("Host-Programm", exe);
-            f.AddIndicator("VIA_HOST", $"Wird ueber {Path.GetFileName(exe)} gestartet (Skript-/DLL-Host)", 10);
+            f.AddIndicator("VIA_HOST", $"Wird über {Path.GetFileName(exe)} gestartet (Skript-/DLL-Host)", 10);
         }
         else if (exe != null)
         {
@@ -101,7 +101,7 @@ public sealed partial class PersistenceScanner : IScanner
         }
         else if (e.Command != null)
         {
-            f.AddIndicator("UNRESOLVED", "Ausgefuehrte Datei konnte nicht ermittelt werden", 5);
+            f.AddIndicator("UNRESOLVED", "Ausgeführte Datei konnte nicht ermittelt werden", 5);
         }
 
         foreach (var rule in CommandLineRules.Match(e.Command))
@@ -110,7 +110,7 @@ public sealed partial class PersistenceScanner : IScanner
         var pup = info != null ? PupCatalog.Find(Path.GetFileName(info.Path)) : null;
         if (pup != null)
             f.AddIndicator(pup.Kind == PupCatalog.Kind.Pup ? "PUP" : "BLOAT",
-                pup.Kind == PupCatalog.Kind.Pup ? $"Potenziell unerwuenschtes Programm: {pup.Name}" : $"Unnoetiger Autostart: {pup.Name}",
+                pup.Kind == PupCatalog.Kind.Pup ? $"Potenziell unerwünschtes Programm: {pup.Name}" : $"Unnötiger Autostart: {pup.Name}",
                 pup.Kind == PupCatalog.Kind.Pup ? 40 : 10);
 
         if (e.Enabled == false)
@@ -134,11 +134,11 @@ public sealed partial class PersistenceScanner : IScanner
         f.Explanation = string.IsNullOrEmpty(f.Explanation) ? ExplainKind(e.Kind) : f.Explanation;
         f.Recommendation = score switch
         {
-            >= 35 when microsoft => "Hochgradig verdaechtig: Ein Windows-Werkzeug wird mit einem verdaechtigen Befehl automatisch gestartet. " +
-                                    "Eintrag deaktivieren (die Windows-Datei selbst NICHT loeschen) und einen vollstaendigen Defender-Scan ausfuehren.",
-            >= 60 => "Hochgradig verdaechtig. Eintrag deaktivieren, zugehoerige Datei in Quarantaene verschieben und einen vollstaendigen Defender-Scan (am besten Offline-Scan) ausfuehren.",
-            >= 35 => "Pruefen, ob Sie dieses Programm kennen. Datei auf VirusTotal pruefen. Falls unbekannt: Eintrag deaktivieren und Datei in Quarantaene verschieben.",
-            >= 15 => "Auffaellig, aber nicht eindeutig. Kennen Sie das Programm? Falls nicht benoetigt, Autostart deaktivieren.",
+            >= 35 when microsoft => "Hochgradig verdächtig: Ein Windows-Werkzeug wird mit einem verdächtigen Befehl automatisch gestartet. " +
+                                    "Eintrag deaktivieren (die Windows-Datei selbst NICHT löschen) und einen vollständigen Defender-Scan ausführen.",
+            >= 60 => "Hochgradig verdächtig. Eintrag deaktivieren, zugehörige Datei in Quarantäne verschieben und einen vollständigen Defender-Scan (am besten Offline-Scan) ausführen.",
+            >= 35 => "Prüfen, ob Sie dieses Programm kennen. Datei auf VirusTotal prüfen. Falls unbekannt: Eintrag deaktivieren und Datei in Quarantäne verschieben.",
+            >= 15 => "Auffällig, aber nicht eindeutig. Kennen Sie das Programm? Falls nicht benötigt, Autostart deaktivieren.",
             _ when pup != null => pup.Advice,
             _ => "Normales Autostart-Programm. Falls Sie es nicht beim Start brauchen, deaktivieren – das beschleunigt den Systemstart.",
         };
@@ -148,17 +148,17 @@ public sealed partial class PersistenceScanner : IScanner
 
     private static string ExplainKind(string kind) => kind switch
     {
-        "Run-Key" or "RunOnce-Key" => "Programme in den Run-Schluesseln der Registry starten bei jeder Anmeldung. Das ist der haeufigste Einnistungsort fuer Malware (MITRE T1547.001).",
-        "Richtlinien-Run" => "Autostart ueber Gruppenrichtlinien-Schluessel – wird von normaler Software selten genutzt, von Malware gern, weil er weniger bekannt ist.",
+        "Run-Key" or "RunOnce-Key" => "Programme in den Run-Schlüsseln der Registry starten bei jeder Anmeldung. Das ist der häufigste Einnistungsort für Malware (MITRE T1547.001).",
+        "Richtlinien-Run" => "Autostart über Gruppenrichtlinien-Schlüssel – wird von normaler Software selten genutzt, von Malware gern, weil er weniger bekannt ist.",
         "Autostart-Ordner" => "Dateien im Autostart-Ordner starten bei jeder Anmeldung.",
-        "Geplante Aufgabe" => "Geplante Aufgaben koennen Programme zeitgesteuert, beim Start oder bei der Anmeldung ausfuehren – auch mit Systemrechten (MITRE T1053.005).",
+        "Geplante Aufgabe" => "Geplante Aufgaben können Programme zeitgesteuert, beim Start oder bei der Anmeldung ausführen – auch mit Systemrechten (MITRE T1053.005).",
         "Dienst" => "Dienste laufen im Hintergrund, oft mit Systemrechten, und starten noch vor der Anmeldung (MITRE T1543.003).",
-        "WMI-Abonnement" => "WMI-Ereignisabonnements fuehren Befehle bei bestimmten Ereignissen aus, ohne Datei im Autostart. Eine beliebte dateilose Persistenztechnik von APT-Gruppen (MITRE T1546.003).",
-        "IFEO-Debugger" => "Ueber 'Image File Execution Options' wird beim Start eines Programms stattdessen ein anderes ausgefuehrt. Wird zur Uebernahme von Programmen missbraucht (MITRE T1546.012).",
-        "Winlogon" => "Winlogon-Eintraege werden bei jeder Anmeldung ausgefuehrt. Abweichungen vom Standard sind ein starkes Malware-Indiz (MITRE T1547.004).",
+        "WMI-Abonnement" => "WMI-Ereignisabonnements führen Befehle bei bestimmten Ereignissen aus, ohne Datei im Autostart. Eine beliebte dateilose Persistenztechnik von APT-Gruppen (MITRE T1546.003).",
+        "IFEO-Debugger" => "Über 'Image File Execution Options' wird beim Start eines Programms stattdessen ein anderes ausgeführt. Wird zur Übernahme von Programmen missbraucht (MITRE T1546.012).",
+        "Winlogon" => "Winlogon-Einträge werden bei jeder Anmeldung ausgeführt. Abweichungen vom Standard sind ein starkes Malware-Indiz (MITRE T1547.004).",
         "AppInit-DLL" or "AppCert-DLL" => "Diese DLLs werden in nahezu jeden Prozess geladen – klassische Rootkit-Technik (MITRE T1546.010/009).",
-        "LSA-Paket" => "LSA-Pakete werden in den Anmeldeprozess (lsass) geladen und sehen Passwoerter im Klartext. Fremde Pakete sind ein Hinweis auf Passwortdiebstahl (MITRE T1547.002/005, T1556.002).",
-        _ => "Dieser Mechanismus fuehrt Code automatisch aus.",
+        "LSA-Paket" => "LSA-Pakete werden in den Anmeldeprozess (lsass) geladen und sehen Passwörter im Klartext. Fremde Pakete sind ein Hinweis auf Passwortdiebstahl (MITRE T1547.002/005, T1556.002).",
+        _ => "Dieser Mechanismus führt Code automatisch aus.",
     };
 
     /// <summary>StartupApproved: so deaktiviert der Task-Manager Autostarts.</summary>
@@ -201,7 +201,7 @@ public sealed partial class PersistenceScanner : IScanner
                     if (value is not string cmd || string.IsNullOrWhiteSpace(cmd)) continue;
                     bool? enabled = approved.Length > 0 ? IsApproved(root, approved, name) ?? true : true;
                     var f = Evaluate(ctx, new Entry(kind, string.IsNullOrEmpty(name) ? "(Standard)" : name, path, cmd,
-                        BaseWeight: kind == "Richtlinien-Run" ? 15 : 0, BaseReason: "Autostart ueber Richtlinien-Schluessel", Enabled: enabled));
+                        BaseWeight: kind == "Richtlinien-Run" ? 15 : 0, BaseReason: "Autostart über Richtlinien-Schlüssel", Enabled: enabled));
                     if (f == null) continue;
                     f.Detail("Benutzer", label);
                     if (approved.Length > 0 && enabled != false)
@@ -297,7 +297,7 @@ public sealed partial class PersistenceScanner : IScanner
                     bool access = AccessibilityBinaries.Contains(exe);
                     var f = Evaluate(ctx, new Entry("IFEO-Debugger", exe, key, debugger,
                         access ? 85 : 40,
-                        access ? $"Bedienungshilfe {exe} wird umgeleitet – Hintertuer am Anmeldebildschirm" : $"Start von {exe} wird auf ein anderes Programm umgeleitet"));
+                        access ? $"Bedienungshilfe {exe} wird umgeleitet – Hintertür am Anmeldebildschirm" : $"Start von {exe} wird auf ein anderes Programm umgeleitet"));
                     f?.Actions.Insert(0, new RemediationAction { Kind = RemediationKind.DeleteRegistryValue, Label = "Umleitung entfernen (mit Sicherung)", Target = key, Argument = "Debugger" });
                 }
 
@@ -327,7 +327,7 @@ public sealed partial class PersistenceScanner : IScanner
             bool loaded = RegistryUtil.GetInt(key, "LoadAppInit_DLLs") == 1;
             foreach (var dll in dlls.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries))
                 Evaluate(ctx, new Entry("AppInit-DLL", Path.GetFileName(dll), key, dll, loaded ? 50 : 20,
-                    loaded ? "DLL wird in jeden Prozess mit grafischer Oberflaeche geladen" : "AppInit-DLL eingetragen (Laden derzeit deaktiviert)"));
+                    loaded ? "DLL wird in jeden Prozess mit grafischer Oberfläche geladen" : "AppInit-DLL eingetragen (Laden derzeit deaktiviert)"));
         }
 
         const string appCert = @"HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\AppCertDlls";
@@ -381,7 +381,7 @@ public sealed partial class PersistenceScanner : IScanner
                 if (entry.Trim().Equals("autocheck autochk *", StringComparison.OrdinalIgnoreCase)) continue;
                 string first = entry.Trim().Split(' ')[0];
                 string exe = Path.Combine(PathUtil.System32, first.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? first : first + ".exe");
-                Evaluate(ctx, new Entry("BootExecute", first, sm, exe, 30, "Programm laeuft beim Systemstart noch vor Windows"));
+                Evaluate(ctx, new Entry("BootExecute", first, sm, exe, 30, "Programm läuft beim Systemstart noch vor Windows"));
             }
         }
 
@@ -393,7 +393,7 @@ public sealed partial class PersistenceScanner : IScanner
             string? autorun = RegistryUtil.GetString(key, "AutoRun");
             if (!string.IsNullOrWhiteSpace(autorun))
             {
-                var f = Evaluate(ctx, new Entry("cmd-AutoRun", "AutoRun", key, autorun, 35, "Befehl wird bei jedem Start von cmd.exe ausgefuehrt"));
+                var f = Evaluate(ctx, new Entry("cmd-AutoRun", "AutoRun", key, autorun, 35, "Befehl wird bei jedem Start von cmd.exe ausgeführt"));
                 f?.Actions.Insert(0, new RemediationAction { Kind = RemediationKind.DeleteRegistryValue, Label = "Eintrag entfernen (mit Sicherung)", Target = key, Argument = "AutoRun" });
             }
         }

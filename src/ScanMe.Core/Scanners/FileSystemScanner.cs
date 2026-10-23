@@ -16,8 +16,8 @@ public sealed partial class FileSystemScanner : IScanner
 {
     public string Id => "filesystem";
     public string Name => "Dateisystem & Phishing-Spuren";
-    public string Description => "Versteckte/verdaechtige Dateien in Downloads, AppData, Temp, Public, ProgramData und Papierkorb.";
-    public bool InQuickScan => false;
+    public string Description => "Versteckte/verdächtige Dateien in Downloads, AppData, Temp, Public, ProgramData und Papierkorb.";
+    public bool InQuickScan => true; // im Schnellscan mit reduzierter Tiefe
 
     private const int MaxFiles = 250_000;
 
@@ -72,16 +72,16 @@ public sealed partial class FileSystemScanner : IScanner
             ctx.ThrowIfCancelled();
             if (!Directory.Exists(dir)) continue;
             ctx.Status($"Durchsuche {dir} …");
-            Walk(ctx, dir, depth);
+            Walk(ctx, dir, ctx.IsFullScan ? depth : Math.Max(0, depth - 1));
             if (_filesSeen >= MaxFiles)
             {
-                ctx.Note($"Dateilimit von {MaxFiles} erreicht – nicht alle Ordner wurden vollstaendig geprueft.");
+                ctx.Note($"Dateilimit von {MaxFiles} erreicht – nicht alle Ordner wurden vollständig geprüft.");
                 break;
             }
         }
 
         ReportRansomExtensions(ctx);
-        ctx.Note($"{_filesSeen:N0} Dateien geprueft.");
+        ctx.Note($"{_filesSeen:N0} Dateien geprüft.");
         return Task.CompletedTask;
     }
 
@@ -203,7 +203,7 @@ public sealed partial class FileSystemScanner : IScanner
         {
             ScannerId = Id,
             Category = FindingCategory.FileSystem,
-            Title = $"Verdaechtige Datei: {name}",
+            Title = $"Verdächtige Datei: {name}",
             FilePath = fi.FullName,
             Location = fi.DirectoryName,
         };
@@ -231,14 +231,14 @@ public sealed partial class FileSystemScanner : IScanner
                         (f.Details.TryGetValue("Download-Quelle", out var url) ? $" – heruntergeladen von {url}" : "");
         f.Explanation ??= "";
         if (f.Explanation.Length == 0)
-            f.Explanation = "Die Datei liegt an einem Ort, den Malware und Phishing-Anhaenge typischerweise nutzen, und weist die aufgefuehrten Merkmale auf.";
+            f.Explanation = "Die Datei liegt an einem Ort, den Malware und Phishing-Anhänge typischerweise nutzen, und weist die aufgeführten Merkmale auf.";
         f.Recommendation = score >= 60
-            ? "Datei nicht oeffnen. In Quarantaene verschieben und auf VirusTotal pruefen. Wenn sie bereits geoeffnet wurde: vollstaendigen Defender-Scan ausfuehren und Passwoerter aendern."
-            : "Wenn Sie die Datei nicht kennen oder nicht bewusst heruntergeladen haben: nicht oeffnen, auf VirusTotal pruefen und ggf. loeschen bzw. in Quarantaene verschieben.";
+            ? "Datei nicht öffnen. In Quarantäne verschieben und auf VirusTotal prüfen. Wenn sie bereits geöffnet wurde: vollständigen Defender-Scan ausführen und Passwörter ändern."
+            : "Wenn Sie die Datei nicht kennen oder nicht bewusst heruntergeladen haben: nicht öffnen, auf VirusTotal prüfen und ggf. löschen bzw. in Quarantäne verschieben.";
         if (!f.Actions.Any(a => a.Kind == RemediationKind.QuarantineFile))
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantaene verschieben", Target = fi.FullName });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantäne verschieben", Target = fi.FullName });
         if (!f.Actions.Any(a => a.Kind == RemediationKind.OpenLocation))
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort oeffnen", Target = fi.FullName, RequiresConfirmation = false });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort öffnen", Target = fi.FullName, RequiresConfirmation = false });
         ctx.Add(f);
     }
 
@@ -255,9 +255,9 @@ public sealed partial class FileSystemScanner : IScanner
             f.AddIndicator("DRIVE_ROOT", "Programm liegt direkt im Laufwerksstamm C:\\", 15);
         if (fi.DirectoryName?.StartsWith(Path.Combine(PathUtil.System32, "Tasks"), StringComparison.OrdinalIgnoreCase) == true
             || fi.DirectoryName?.StartsWith(Path.Combine(PathUtil.WindowsDir, "Tasks"), StringComparison.OrdinalIgnoreCase) == true)
-            f.AddIndicator("IN_TASKS_DIR", "Programmdatei im Aufgabenordner von Windows (dort gehoeren nur Aufgabendefinitionen hin)", 45);
+            f.AddIndicator("IN_TASKS_DIR", "Programmdatei im Aufgabenordner von Windows (dort gehören nur Aufgabendefinitionen hin)", 45);
         if (parent != null && LocationClassifier.IsUserWritable(loc) && LooksRandom(parent))
-            f.AddIndicator("RANDOM_DIR", $"Ordnername \"{parent}\" wirkt zufaellig generiert", 10);
+            f.AddIndicator("RANDOM_DIR", $"Ordnername \"{parent}\" wirkt zufällig generiert", 10);
 
         if (info.Signature != SignatureState.Valid)
             StaticAnalyzer.Analyze(f, fi.FullName);
@@ -275,7 +275,7 @@ public sealed partial class FileSystemScanner : IScanner
             ".js" or ".vbs" when loc is LocationKind.Downloads or LocationKind.Temp or LocationKind.Desktop => 20,
             _ => 0,
         };
-        if (extWeight > 0) f.AddIndicator("SCRIPT_TYPE", $"{ext}-Skript – beliebtes Format fuer Phishing-Anhaenge (wird per Doppelklick sofort ausgefuehrt)", extWeight);
+        if (extWeight > 0) f.AddIndicator("SCRIPT_TYPE", $"{ext}-Skript – beliebtes Format für Phishing-Anhänge (wird per Doppelklick sofort ausgeführt)", extWeight);
 
         var motw = ZoneIdentifier.Read(fi.FullName);
         if (motw.ZoneId >= 3)
@@ -303,7 +303,7 @@ public sealed partial class FileSystemScanner : IScanner
         f.Detail("Erstellt", fi.CreationTime.ToString("g")).Detail("SHA256", FileTrustService.TryHash(fi.FullName));
         f.Sha256 = f.Details.GetValueOrDefault("SHA256");
         if (f.Sha256 != null)
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.LookupOnline, Label = "Auf VirusTotal pruefen", Target = f.Sha256, RequiresConfirmation = false });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.LookupOnline, Label = "Auf VirusTotal prüfen", Target = f.Sha256, RequiresConfirmation = false });
     }
 
     private static void AnalyzeLnk(Finding f, FileInfo fi, LocationKind loc)
@@ -319,13 +319,13 @@ public sealed partial class FileSystemScanner : IScanner
         bool benignHost = targetName.Equals("control.exe", StringComparison.OrdinalIgnoreCase) || targetName.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase);
         if (ExecutableAssessor.LolBins.Contains(targetName) && !benignHost && !string.IsNullOrWhiteSpace(args))
         {
-            f.AddIndicator("LNK_LOLBIN", $"Verknuepfung startet {targetName} mit Parametern – klassische LNK-Phishing-Technik", 45);
+            f.AddIndicator("LNK_LOLBIN", $"Verknüpfung startet {targetName} mit Parametern – klassische LNK-Phishing-Technik", 45);
             foreach (var rule in CommandLineRules.Match(args))
                 f.AddIndicator("LNK_" + rule.Id, rule.Text, rule.Weight);
-            f.Explanation = "Angreifer verschicken Verknuepfungen (.lnk), die wie Dokumente aussehen, beim Oeffnen aber PowerShell oder cmd mit Schadcode starten.";
+            f.Explanation = "Angreifer verschicken Verknüpfungen (.lnk), die wie Dokumente aussehen, beim Öffnen aber PowerShell oder cmd mit Schadcode starten.";
         }
         if (args?.Length > 300)
-            f.AddIndicator("LNK_LONG_ARGS", "Ungewoehnlich lange Parameter in der Verknuepfung", 20);
+            f.AddIndicator("LNK_LONG_ARGS", "Ungewöhnlich lange Parameter in der Verknüpfung", 20);
     }
 
     private static void AnalyzePhishingContainer(ScanContext ctx, Finding f, FileInfo fi, bool isContainer)
@@ -344,12 +344,12 @@ public sealed partial class FileSystemScanner : IScanner
         else
         {
             f.AddIndicator("MACRO_DOC", $"Dokument mit Makros/eingebetteten Inhalten ({fi.Extension}) aus dem Internet/E-Mail", 30);
-            f.Explanation = "Makro-Dokumente und OneNote-Dateien sind klassische Phishing-Anhaenge: Ein Klick auf 'Inhalt aktivieren' fuehrt Schadcode aus.";
+            f.Explanation = "Makro-Dokumente und OneNote-Dateien sind klassische Phishing-Anhänge: Ein Klick auf 'Inhalt aktivieren' führt Schadcode aus.";
         }
         f.Sha256 = FileTrustService.TryHash(fi.FullName);
         f.Detail("SHA256", f.Sha256);
         if (f.Sha256 != null)
-            f.Actions.Add(new RemediationAction { Kind = RemediationKind.LookupOnline, Label = "Auf VirusTotal pruefen", Target = f.Sha256, RequiresConfirmation = false });
+            f.Actions.Add(new RemediationAction { Kind = RemediationKind.LookupOnline, Label = "Auf VirusTotal prüfen", Target = f.Sha256, RequiresConfirmation = false });
     }
 
     // ------------------------------------------------------------------
@@ -377,9 +377,9 @@ public sealed partial class FileSystemScanner : IScanner
                     Title = $"Versteckter Datenstrom: {fi.Name}:{stream}",
                     FilePath = fi.FullName,
                     Location = fi.DirectoryName,
-                    Description = $"An die Datei {fi.FullName} ist ein versteckter NTFS-Datenstrom \"{stream}\" ({TextUtil.FormatBytes(data.StreamSize)}) angehaengt.",
-                    Explanation = "Alternative Datenstroeme (ADS) sind im Explorer unsichtbar. Malware versteckt darin Programme oder Konfigurationsdaten.",
-                    Recommendation = $"Inhalt pruefen: Get-Content -Path \"{fi.FullName}\" -Stream \"{stream}\". Unbekannte Datenstroeme mit Remove-Item -Stream entfernen.",
+                    Description = $"An die Datei {fi.FullName} ist ein versteckter NTFS-Datenstrom \"{stream}\" ({TextUtil.FormatBytes(data.StreamSize)}) angehängt.",
+                    Explanation = "Alternative Datenströme (ADS) sind im Explorer unsichtbar. Malware versteckt darin Programme oder Konfigurationsdaten.",
+                    Recommendation = $"Inhalt prüfen: Get-Content -Path \"{fi.FullName}\" -Stream \"{stream}\". Unbekannte Datenströme mit Remove-Item -Stream entfernen.",
                 };
                 // Kleine Stroeme setzen auch Backup-/AV-Programme zur Dateimarkierung – erst gross oder mit Programm relevant.
                 bool big = data.StreamSize > 64 * 1024;
@@ -389,7 +389,7 @@ public sealed partial class FileSystemScanner : IScanner
                     using var fs = new FileStream($"{fi.FullName}:{stream}", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                     var head = new byte[2];
                     if (fs.Read(head, 0, 2) == 2 && head[0] == 'M' && head[1] == 'Z')
-                        f.AddIndicator("ADS_PE", "Der versteckte Datenstrom enthaelt ein ausfuehrbares Programm!", 50);
+                        f.AddIndicator("ADS_PE", "Der versteckte Datenstrom enthält ein ausführbares Programm!", 50);
                 }
                 catch { }
                 ctx.Add(f);
@@ -407,7 +407,7 @@ public sealed partial class FileSystemScanner : IScanner
         string content;
         try { content = File.ReadAllText(fi.FullName); }
         catch { return; }
-        string[] markers = ["encrypted", "verschluesselt", "verschlüsselt", "bitcoin", "decrypt", ".onion", "tor browser", "private key", "ransom", "monero"];
+        string[] markers = ["encrypted", "verschlüsselt", "verschlüsselt", "bitcoin", "decrypt", ".onion", "tor browser", "private key", "ransom", "monero"];
         int hits = markers.Count(m => content.Contains(m, StringComparison.OrdinalIgnoreCase));
         if (hits < 3) return;
 
@@ -415,12 +415,12 @@ public sealed partial class FileSystemScanner : IScanner
         {
             ScannerId = Id,
             Category = FindingCategory.Malware,
-            Title = $"Moegliche Loesegeldforderung: {fi.Name}",
+            Title = $"Mögliche Lösegeldforderung: {fi.Name}",
             FilePath = fi.FullName,
             Location = fi.DirectoryName,
-            Description = $"Die Datei {fi.FullName} (erstellt {fi.CreationTime:g}) enthaelt typische Formulierungen einer Ransomware-Erpressung.",
-            Explanation = "Erpressungstrojaner hinterlegen solche Notizen in jedem verschluesselten Ordner.",
-            Recommendation = "PC sofort vom Netzwerk trennen, nicht bezahlen, keine Dateien loeschen. Auf nomoreransom.org pruefen, ob es ein Entschluesselungstool gibt, und Fachleute bzw. die Polizei (Cybercrime) einschalten.",
+            Description = $"Die Datei {fi.FullName} (erstellt {fi.CreationTime:g}) enthält typische Formulierungen einer Ransomware-Erpressung.",
+            Explanation = "Erpressungstrojaner hinterlegen solche Notizen in jedem verschlüsselten Ordner.",
+            Recommendation = "PC sofort vom Netzwerk trennen, nicht bezahlen, keine Dateien löschen. Auf nomoreransom.org prüfen, ob es ein Entschlüsselungstool gibt, und Fachleute bzw. die Polizei (Cybercrime) einschalten.",
         };
         f.AddIndicator("RANSOM_NOTE", "Typische Inhalte einer Ransomware-Notiz", 60 + hits * 5);
         f.Detail("Auszug", TextUtil.Truncate(content, 400));
@@ -437,8 +437,8 @@ public sealed partial class FileSystemScanner : IScanner
                 Category = FindingCategory.Malware,
                 Title = $"Viele Dateien mit Ransomware-Endung {ext}",
                 Description = $"{count} Dateien tragen die Endung {ext}.",
-                Explanation = "Erpressungstrojaner haengen verschluesselten Dateien eine eigene Endung an.",
-                Recommendation = "Pruefen, ob sich betroffene Dateien noch oeffnen lassen. Falls nicht: PC vom Netz trennen und Fachleute hinzuziehen.",
+                Explanation = "Erpressungstrojaner hängen verschlüsselten Dateien eine eigene Endung an.",
+                Recommendation = "Prüfen, ob sich betroffene Dateien noch öffnen lassen. Falls nicht: PC vom Netz trennen und Fachleute hinzuziehen.",
             };
             f.AddIndicator("RANSOM_EXT", $"{count} Dateien mit typischer Ransomware-Endung", count >= 100 ? 85 : 60);
             ctx.Add(f);

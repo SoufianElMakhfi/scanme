@@ -15,7 +15,7 @@ public sealed class SoftwareScanner : IScanner
 {
     public string Id => "software";
     public string Name => "Installierte Software";
-    public string Description => "PUPs, Fernwartungstools, kuerzlich installierte Programme und verwundbare Versionen.";
+    public string Description => "PUPs, Fernwartungstools, kürzlich installierte Programme und verwundbare Versionen.";
     public bool InQuickScan => true;
 
     public sealed record InstalledProgram(string Name, string? Version, string? Publisher, DateTime? InstallDate, string? Location, string? Uninstall, string Scope);
@@ -28,14 +28,14 @@ public sealed class SoftwareScanner : IScanner
     /// <summary>Software mit aktiv ausgenutzten Luecken bzw. ohne Support (FixedIn = null: jede Version betroffen).</summary>
     private static readonly VulnRule[] VulnRules =
     [
-        V(@"^WinRAR", "7.13", 45, "WinRAR vor 7.13 hat aktiv in Phishing-Kampagnen ausgenutzte Luecken (CVE-2023-38831, CVE-2025-8088): Das Oeffnen eines praeparierten Archivs reicht zur Infektion."),
-        V(@"^7-Zip", "25.0", 30, "7-Zip vor 25.00 hat Luecken (u. a. CVE-2025-0411: Umgehung der Internet-Markierung), die in Phishing-Angriffen genutzt wurden."),
-        V(@"Adobe Flash Player", null, 55, "Flash Player wird seit 2020 nicht mehr unterstuetzt und hat zahlreiche ungepatchte Luecken."),
-        V(@"Adobe Shockwave", null, 45, "Shockwave wird nicht mehr unterstuetzt."),
-        V(@"Microsoft Silverlight", null, 25, "Silverlight wird seit 2021 nicht mehr unterstuetzt."),
-        V(@"^QuickTime", null, 35, "QuickTime fuer Windows erhaelt seit 2016 keine Sicherheitsupdates mehr."),
+        V(@"^WinRAR", "7.13", 45, "WinRAR vor 7.13 hat aktiv in Phishing-Kampagnen ausgenutzte Lücken (CVE-2023-38831, CVE-2025-8088): Das Öffnen eines präparierten Archivs reicht zur Infektion."),
+        V(@"^7-Zip", "25.0", 30, "7-Zip vor 25.00 hat Lücken (u. a. CVE-2025-0411: Umgehung der Internet-Markierung), die in Phishing-Angriffen genutzt wurden."),
+        V(@"Adobe Flash Player", null, 55, "Flash Player wird seit 2020 nicht mehr unterstützt und hat zahlreiche ungepatchte Lücken."),
+        V(@"Adobe Shockwave", null, 45, "Shockwave wird nicht mehr unterstützt."),
+        V(@"Microsoft Silverlight", null, 25, "Silverlight wird seit 2021 nicht mehr unterstützt."),
+        V(@"^QuickTime", null, 35, "QuickTime für Windows erhält seit 2016 keine Sicherheitsupdates mehr."),
         V(@"^Java(\(TM\))? [67]\b|^Java [67] Update", null, 45, "Java 6/7 ist seit Jahren ohne Sicherheitsupdates."),
-        V(@"^PuTTY", "0.81", 25, "PuTTY vor 0.81 kann private Schluessel preisgeben (CVE-2024-31497)."),
+        V(@"^PuTTY", "0.81", 25, "PuTTY vor 0.81 kann private Schlüssel preisgeben (CVE-2024-31497)."),
         V(@"^AnyDesk", "8.0.8", 15, "AnyDesk-Versionen vor 2024 sind von einem Zertifikatsdiebstahl betroffen; Update empfohlen."),
     ];
 
@@ -55,13 +55,13 @@ public sealed class SoftwareScanner : IScanner
                 Location = p.Location,
             };
             f.Detail("Version", p.Version).Detail("Hersteller", p.Publisher).Detail("Installiert am", p.InstallDate?.ToString("d"))
-             .Detail("Installationsort", p.Location).Detail("Deinstallation", p.Uninstall).Detail("Installiert fuer", p.Scope);
+             .Detail("Installationsort", p.Location).Detail("Deinstallation", p.Uninstall).Detail("Installiert für", p.Scope);
 
             // --- PUP ---
             var pup = PupCatalog.FindByDisplayName(p.Name);
             if (pup != null)
             {
-                f.AddIndicator("PUP", $"Potenziell unerwuenschtes Programm: {pup.Name}", 40);
+                f.AddIndicator("PUP", $"Potenziell unerwünschtes Programm: {pup.Name}", 40);
                 f.Explanation = pup.Advice;
             }
 
@@ -72,8 +72,8 @@ public sealed class SoftwareScanner : IScanner
             {
                 bool recent = p.InstallDate is { } d && (DateTime.Now - d).TotalDays < 30;
                 f.AddIndicator("REMOTE_TOOL", $"{KnownTools.KindText(tool.Kind)} installiert{(recent ? " – erst kuerzlich" : "")}. {tool.Note}", recent ? 40 : 20);
-                f.Explanation = "Fernwartungsprogramme geben einer anderen Person volle Kontrolle ueber den PC. Bei Telefonbetrug (falscher Support, falsche Bank) " +
-                                "werden Opfer gezielt zur Installation ueberredet.";
+                f.Explanation = "Fernwartungsprogramme geben einer anderen Person volle Kontrolle über den PC. Bei Telefonbetrug (falscher Support, falsche Bank) " +
+                                "werden Opfer gezielt zur Installation überredet.";
             }
 
             // --- Verwundbare Versionen ---
@@ -84,7 +84,7 @@ public sealed class SoftwareScanner : IScanner
                 if (!affected) continue;
                 f.AddIndicator("VULN", rule.Text, rule.Weight);
                 f.Explanation = rule.Text;
-                f.Recommendation = rule.FixedIn != null ? $"Auf Version {rule.FixedIn} oder neuer aktualisieren." : "Deinstallieren – wird nicht mehr benoetigt und ist unsicher.";
+                f.Recommendation = rule.FixedIn != null ? $"Auf Version {rule.FixedIn} oder neuer aktualisieren." : "Deinstallieren – wird nicht mehr benötigt und ist unsicher.";
                 f.Category = FindingCategory.SecurityConfig;
             }
 
@@ -92,8 +92,8 @@ public sealed class SoftwareScanner : IScanner
             f.Description = $"{p.Name} {p.Version} von {p.Publisher ?? "unbekanntem Hersteller"}" + (p.InstallDate != null ? $", installiert am {p.InstallDate:d}." : ".");
             if (string.IsNullOrEmpty(f.Recommendation))
                 f.Recommendation = tool != null
-                    ? "Nutzen Sie das Programm bewusst? Falls nicht – oder falls Sie am Telefon dazu gedraengt wurden – deinstallieren und Passwoerter von einem anderen Geraet aus aendern."
-                    : "Ueber Einstellungen → Apps → Installierte Apps deinstallieren.";
+                    ? "Nutzen Sie das Programm bewusst? Falls nicht – oder falls Sie am Telefon dazu gedrängt wurden – deinstallieren und Passwörter von einem anderen Gerät aus ändern."
+                    : "Über Einstellungen → Apps → Installierte Apps deinstallieren.";
             ctx.Add(f);
         }
 
@@ -110,7 +110,7 @@ public sealed class SoftwareScanner : IScanner
         {
             ScannerId = Id,
             Category = FindingCategory.Persistence,
-            Title = "Kuerzlich installierte Programme (14 Tage)",
+            Title = "Kürzlich installierte Programme (14 Tage)",
             Description = string.Join("; ", recent.Take(30).Select(p => $"{p.InstallDate:d} {p.Name} ({p.Publisher ?? "?"})")),
             Explanation = "Nach einem Phishing-Vorfall oder Support-Anruf hilft diese Zeitleiste zu erkennen, was ohne Ihr Wissen installiert wurde.",
             Recommendation = "Liste durchgehen: Ist alles von Ihnen selbst installiert worden?",

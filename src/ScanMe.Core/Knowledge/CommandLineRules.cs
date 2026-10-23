@@ -51,9 +51,9 @@ public static class CommandLineRules
 
         // --- Persistenz / Konten ---
         R("NET_USER_ADD", @"net1?(\.exe)?\s+user\s+\S+\s+\S+\s+/add", 45, "Legt einen neuen Benutzer an", "T1136.001"),
-        R("NET_ADMIN_ADD", @"net1?(\.exe)?\s+localgroup\s+(administrators|administratoren)\s+\S+\s+/add", 55, "Fuegt einen Benutzer zur Administratorgruppe hinzu", "T1098"),
+        R("NET_ADMIN_ADD", @"net1?(\.exe)?\s+localgroup\s+(administrators|administratoren)\s+\S+\s+/add", 55, "Fügt einen Benutzer zur Administratorgruppe hinzu", "T1098"),
         R("SCHTASKS_CREATE", @"schtasks(\.exe)?.*/create", 20, "Legt eine geplante Aufgabe an", "T1053.005"),
-        R("REG_RUN_ADD", @"reg(\.exe)?\s+add\s+.*\\currentversion\\run", 35, "Traegt sich in den Autostart ein", "T1547.001"),
+        R("REG_RUN_ADD", @"reg(\.exe)?\s+add\s+.*\\currentversion\\run", 35, "Trägt sich in den Autostart ein", "T1547.001"),
         R("STICKY_KEYS", @"(sethc|utilman|osk|magnify|narrator|displayswitch)\.exe.*(debugger|copy|cmd\.exe)", 60, "Manipulation der Bedienungshilfen (Hintertuer am Anmeldebildschirm)", "T1546.008"),
 
         // --- Credential Access ---

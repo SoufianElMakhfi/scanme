@@ -27,7 +27,7 @@ public static class SafetyGuard
 
         string self = Environment.ProcessPath ?? "";
         if (full.Equals(self, StringComparison.OrdinalIgnoreCase) || PathUtil.IsUnder(full, AppContext.BaseDirectory.TrimEnd('\\')))
-            return "ScanMe schuetzt sich selbst.";
+            return "ScanMe schützt sich selbst.";
 
         if (PathUtil.IsUnderWindowsDirectory(full) && !AllowedUnderWindows.Any(a => PathUtil.IsUnder(full, a)))
         {
@@ -38,7 +38,7 @@ public static class SafetyGuard
         }
 
         var trust = FileTrustService.Shared.Get(full);
-        if (trust.IsWindowsComponent) return "Verifizierte Windows-Komponente – wird nie verschoben oder geloescht.";
+        if (trust.IsWindowsComponent) return "Verifizierte Windows-Komponente – wird nie verschoben oder gelöscht.";
         if (trust.IsMicrosoftSigned) return "Von Microsoft signierte Datei – wird zum Schutz des Systems nicht angetastet.";
 
         string defender = Path.Combine(PathUtil.ProgramData, @"Microsoft\Windows Defender");
@@ -46,7 +46,7 @@ public static class SafetyGuard
             return "Bestandteil von Microsoft Defender.";
 
         if (full.Equals(Path.Combine(PathUtil.System32, @"drivers\etc\hosts"), StringComparison.OrdinalIgnoreCase))
-            return "Die Hosts-Datei wird nur ueber 'Zuruecksetzen' bearbeitet.";
+            return "Die Hosts-Datei wird nur über 'Zurücksetzen' bearbeitet.";
 
         return null;
     }
@@ -59,7 +59,7 @@ public static class SafetyGuard
 
         System.Diagnostics.Process p;
         try { p = System.Diagnostics.Process.GetProcessById(pid); }
-        catch { return "Prozess laeuft nicht mehr."; }
+        catch { return "Prozess läuft nicht mehr."; }
 
         using (p)
         {
@@ -70,7 +70,7 @@ public static class SafetyGuard
             bool genuine = path != null && FileTrustService.Shared.Get(path).IsWindowsComponent;
             // Echte kritische Systemprozesse NIE beenden. Faelschungen gleichen Namens (z. B. svchost.exe in AppData) duerfen beendet werden.
             if (SystemProcesses.IsNeverKill(name) && (genuine || path == null))
-                return $"{name} ist ein kritischer Windows-Prozess – Beenden wuerde einen Systemabsturz ausloesen.";
+                return $"{name} ist ein kritischer Windows-Prozess – Beenden würde einen Systemabsturz auslösen.";
             if (genuine && name.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase))
                 return "Der Windows-Explorer (Desktop/Taskleiste) wird nicht beendet.";
         }
@@ -82,9 +82,9 @@ public static class SafetyGuard
     {
         string k = key.ToUpperInvariant();
         if (k.Contains(@"\CONTROL\LSA") && !value.Equals("RunAsPPL", StringComparison.OrdinalIgnoreCase))
-            return "LSA-Werte werden nicht geloescht (Anmeldung koennte unmoeglich werden).";
+            return "LSA-Werte werden nicht gelöscht (Anmeldung könnte unmöglich werden).";
         if (k.EndsWith(@"\WINLOGON") && value is "Shell" or "Userinit")
-            return "Winlogon-Werte werden nur auf den Windows-Standard zurueckgesetzt, nie geloescht.";
+            return "Winlogon-Werte werden nur auf den Windows-Standard zurückgesetzt, nie gelöscht.";
         return null;
     }
 

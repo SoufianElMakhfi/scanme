@@ -88,7 +88,7 @@ public static class Quarantine
             if (!MoveFileEx(path, null, MOVEFILE_DELAY_UNTIL_REBOOT))
             {
                 Directory.Delete(dir, true);
-                return ActionResult.Fail("Datei ist gesperrt und konnte nicht zum Loeschen vorgemerkt werden.");
+                return ActionResult.Fail("Datei ist gesperrt und konnte nicht zum Löschen vorgemerkt werden.");
             }
             item.PendingReboot = true;
         }
@@ -96,8 +96,8 @@ public static class Quarantine
         File.WriteAllText(Path.Combine(dir, "manifest.json"), JsonSerializer.Serialize(item, Json));
         FileTrustService.Shared.Invalidate(path);
         return ActionResult.Ok(item.PendingReboot
-            ? "Datei gesichert; sie ist gerade in Benutzung und wird beim naechsten Neustart entfernt."
-            : "Datei in Quarantaene verschoben. Wiederherstellung jederzeit moeglich.");
+            ? "Datei gesichert; sie ist gerade in Benutzung und wird beim nächsten Neustart entfernt."
+            : "Datei in Quarantäne verschoben. Wiederherstellung jederzeit möglich.");
     }
 
     public static ActionResult Restore(string id)
@@ -110,7 +110,7 @@ public static class Quarantine
             // Datei ist noch da (war gesperrt) – nur die vorgemerkte Loeschung stornieren.
             CancelPendingDelete(item.OriginalPath);
             Directory.Delete(dir, true);
-            return ActionResult.Ok($"Vorgemerkte Loeschung storniert: {item.OriginalPath}");
+            return ActionResult.Ok($"Vorgemerkte Löschung storniert: {item.OriginalPath}");
         }
         Directory.CreateDirectory(Path.GetDirectoryName(item.OriginalPath)!);
         Encode(Path.Combine(dir, "data.bin"), item.OriginalPath); // XOR ist symmetrisch
@@ -122,10 +122,10 @@ public static class Quarantine
     public static ActionResult Delete(string id)
     {
         Directory.Delete(Path.Combine(AppPaths.QuarantineDir, id), true);
-        return ActionResult.Ok("Endgueltig geloescht.");
+        return ActionResult.Ok("Endgültig gelöscht.");
     }
 
-    /// <summary>Entfernt "Loeschen beim Neustart" fuer eine Datei aus PendingFileRenameOperations (Paare: Quelle, Ziel; Ziel leer = loeschen).</summary>
+    /// <summary>Entfernt "Löschen beim Neustart" fuer eine Datei aus PendingFileRenameOperations (Paare: Quelle, Ziel; Ziel leer = loeschen).</summary>
     private static void CancelPendingDelete(string path)
     {
         const string key = @"SYSTEM\CurrentControlSet\Control\Session Manager";

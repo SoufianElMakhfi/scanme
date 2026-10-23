@@ -47,7 +47,7 @@ public static class SeverityText
         FindingCategory.EventLog => "Ereignisprotokolle",
         FindingCategory.Driver => "Treiber",
         FindingCategory.Account => "Benutzerkonten",
-        FindingCategory.Compatibility => "Kompatibilitaet & Stabilitaet",
+        FindingCategory.Compatibility => "Kompatibilität & Stabilität",
         _ => c.ToString(),
     };
 }
