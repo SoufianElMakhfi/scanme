@@ -1,0 +1,36 @@
+name: Fehlalarm melden
+description: ScanMe meldet ein harmloses Programm als verdächtig
+title: "[Fehlalarm] "
+labels: ["fehlalarm"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke! Bitte **keine Passwörter, Benutzernamen oder privaten Pfade** posten – ersetze sie z. B. durch `<USER>`.
+  - type: input
+    id: finding
+    attributes:
+      label: Titel des Fundes
+      placeholder: "Verdächtige Datei: tool.exe"
+    validations:
+      required: true
+  - type: input
+    id: program
+    attributes:
+      label: Um welches Programm handelt es sich wirklich?
+      placeholder: "Hersteller, Programmname, Download-Quelle"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Indikatoren und Details
+      description: Im Fund auf „Details kopieren“ klicken und hier einfügen.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ScanMe-Version und Windows-Version
+      placeholder: "ScanMe 1.0.1, Windows 11 24H2"

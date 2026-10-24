@@ -110,9 +110,9 @@ public sealed partial class FileSystemScanner : IScanner
         yield return (Path.Combine(PathUtil.WindowsDir, "Temp"), 3);
         yield return (Path.Combine(PathUtil.WindowsDir, "Tasks"), 1);
         yield return (Path.Combine(PathUtil.System32, "Tasks"), 0); // nur Nicht-XML-Dateien sind hier verdaechtig
-        yield return (@"C:\PerfLogs", 3);
-        yield return (@"C:\", 0);
-        yield return (@"C:\$Recycle.Bin", 3);
+        yield return (Path.Combine(PathUtil.SystemDrive, "PerfLogs"), 3);
+        yield return (PathUtil.SystemDrive, 0);
+        yield return (Path.Combine(PathUtil.SystemDrive, "$Recycle.Bin"), 3);
         foreach (var extra in ctx.Options.ExtraPaths) yield return (extra, 6);
     }
 
@@ -254,8 +254,8 @@ public sealed partial class FileSystemScanner : IScanner
         string? grand = fi.Directory?.Parent?.Name;
         if (grand is "AppData" && parent is "Roaming" or "Local" or "LocalLow")
             f.AddIndicator("APPDATA_ROOT", "Programm liegt direkt im AppData-Stammordner (kein eigener Programmordner)", 20);
-        if (fi.DirectoryName?.Equals(@"C:\", StringComparison.OrdinalIgnoreCase) == true)
-            f.AddIndicator("DRIVE_ROOT", "Programm liegt direkt im Laufwerksstamm C:\\", 15);
+        if (fi.DirectoryName?.Equals(PathUtil.SystemDrive, StringComparison.OrdinalIgnoreCase) == true)
+            f.AddIndicator("DRIVE_ROOT", $"Programm liegt direkt im Laufwerksstamm {PathUtil.SystemDrive}", 15);
         if (fi.DirectoryName?.StartsWith(Path.Combine(PathUtil.System32, "Tasks"), StringComparison.OrdinalIgnoreCase) == true
             || fi.DirectoryName?.StartsWith(Path.Combine(PathUtil.WindowsDir, "Tasks"), StringComparison.OrdinalIgnoreCase) == true)
             f.AddIndicator("IN_TASKS_DIR", "Programmdatei im Aufgabenordner von Windows (dort gehören nur Aufgabendefinitionen hin)", 45);

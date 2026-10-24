@@ -47,7 +47,7 @@ public static class LocationClassifier
         if (p.Contains(@"\AppData\Local\", StringComparison.OrdinalIgnoreCase)) return LocationKind.UserAppDataLocal;
         if (p.Contains(@"\Downloads\", StringComparison.OrdinalIgnoreCase)) return LocationKind.Downloads;
         if (p.Contains(@"\Desktop\", StringComparison.OrdinalIgnoreCase)) return LocationKind.Desktop;
-        if (p.StartsWith(@"C:\PerfLogs\", StringComparison.OrdinalIgnoreCase)) return LocationKind.Temp;
+        if (PathUtil.IsUnder(p, Path.Combine(PathUtil.SystemDrive, "PerfLogs"))) return LocationKind.Temp;
         return LocationKind.Other;
     }
 

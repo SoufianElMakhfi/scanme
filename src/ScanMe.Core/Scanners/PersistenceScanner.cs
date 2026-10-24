@@ -242,7 +242,7 @@ public sealed partial class PersistenceScanner : IScanner
             var parts = userinit.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             bool ok = parts.Length == 1 && Path.GetFileName(Environment.ExpandEnvironmentVariables(parts[0])).Equals("userinit.exe", StringComparison.OrdinalIgnoreCase)
                       && PathUtil.IsInSystemDirectory(PathUtil.Normalize(parts[0]));
-            if (!ok) WinlogonFinding(ctx, wl, "Userinit", userinit, @"C:\Windows\system32\userinit.exe,");
+            if (!ok) WinlogonFinding(ctx, wl, "Userinit", userinit, Path.Combine(PathUtil.System32, "userinit.exe") + ",");
         }
 
         foreach (var name in new[] { "Taskman", "AppSetup", "GinaDLL" })

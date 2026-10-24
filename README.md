@@ -17,6 +17,35 @@ früheren Angriffs oder Phishings? Zu **jedem Fund** erklärt ScanMe, *was* gefu
 
 Läuft auf **Windows 10 (ab 1809) und Windows 11**, x64 und ARM64.
 
+> **SmartScreen-Warnung beim ersten Start:** ScanMe ist (noch) nicht mit einem kostenpflichtigen
+> Code-Signing-Zertifikat signiert. Windows zeigt daher „Der Computer wurde durch Windows geschützt“.
+> Prüfe die Prüfsumme der ZIP mit `SHA256SUMS.txt` aus dem Release und wähle dann
+> „Weitere Informationen → Trotzdem ausführen“.
+
+## Updates
+
+- **Programm:** ScanMe prüft beim Start, ob es eine neuere Version gibt, und zeigt dann in der Seitenleiste
+  einen Hinweis mit Download-Link. Ersetze einfach die alte `ScanMe.exe` – Quarantäne, Verlauf, Ignorierliste
+  und Einstellungen liegen in `C:\ProgramData\ScanMe` und bleiben erhalten.
+- **Erkennungsregeln:** Vor jedem Scan lädt ScanMe neue Regeln aus [`rules/rules.json`](rules/rules.json).
+  Sie werden **nur übernommen, wenn ihre digitale Signatur (ECDSA P-256) gültig ist** – selbst ein
+  übernommenes GitHub-Konto könnte keine manipulierten Regeln verteilen. Online-Regeln können Erkennungen
+  nur **ergänzen**, niemals eingebaute Regeln entfernen oder abschwächen. Ohne Internet arbeitet ScanMe
+  mit den zuletzt geprüften bzw. eingebauten Regeln.
+
+## Datenschutz
+
+ScanMe sendet **keine Daten von deinem PC** irgendwohin. Es gibt genau drei Netzwerkzugriffe:
+
+| Zugriff | Wann | Was wird übertragen |
+|---|---|---|
+| `api.github.com` (neueste Version) | beim Start | nur die Anfrage selbst (IP-Adresse, „ScanMe/Version“) |
+| `raw.githubusercontent.com` (Regeln) | vor jedem Scan | nur die Anfrage selbst |
+| VirusTotal | nur wenn du „Auf VirusTotal prüfen“ klickst | der SHA256-Hash der Datei (öffnet sich im Browser), **nie die Datei** |
+
+Die ersten beiden lassen sich unter *Einstellungen → Online-Funktionen* abschalten.
+Microsoft Defender wird lokal über `MpCmdRun.exe` befragt; dessen eigene Cloud-Einstellungen gelten unverändert.
+
 ## Was wird geprüft?
 
 | Bereich | Inhalt |
@@ -112,3 +141,22 @@ abgestimmt, können aber nicht jede Malware erkennen – insbesondere keine Kern
 allen Windows-Schnittstellen verbergen. Bei kritischen Funden zusätzlich einen
 **Microsoft Defender Offline-Scan** ausführen (Windows-Sicherheit → Viren- & Bedrohungsschutz → Scanoptionen).
 Berichte enthalten Pfade und Benutzernamen – nur an vertrauenswürdige Personen weitergeben.
+
+## Mitwirken
+
+Fehlalarme, übersehene Malware, neue Regeln und Code-Beiträge sind willkommen – siehe
+[CONTRIBUTING.md](CONTRIBUTING.md). Sicherheitslücken in ScanMe bitte privat melden: [SECURITY.md](SECURITY.md).
+
+## Lizenz und Haftungsausschluss
+
+ScanMe ist freie Software unter der **GNU General Public License v3.0** – siehe [LICENSE](LICENSE).
+Du darfst ScanMe nutzen, verändern und weitergeben; veränderte Versionen müssen ebenfalls unter der GPL-3.0
+mit Quellcode veröffentlicht werden.
+
+**ScanMe wird ohne jede Gewährleistung bereitgestellt** (GPL-3.0, Abschnitte 15 und 16). ScanMe arbeitet
+mit Heuristiken und kann Schadsoftware übersehen oder harmlose Programme als verdächtig melden. Jede Aktion
+(Beenden, Quarantäne, Deaktivieren) wird von dir ausgelöst und bestätigt; prüfe Funde vor dem Handeln und
+sichere wichtige Daten. Die Nutzung erfolgt auf eigene Verantwortung; eine Haftung der Autoren ist
+ausgeschlossen, soweit gesetzlich zulässig.
+
+Copyright © 2026 Soufian El Makhfi und Mitwirkende.

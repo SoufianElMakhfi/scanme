@@ -1,0 +1,29 @@
+name: Fehler melden
+description: ScanMe stürzt ab oder verhält sich falsch
+title: "[Fehler] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Was ist passiert?
+      description: Was haben Sie getan, was haben Sie erwartet, was ist stattdessen passiert?
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Fehlermeldung
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: ScanMe-Version und Windows-Version
+      placeholder: "ScanMe 1.0.1, Windows 10 22H2"
+    validations:
+      required: true
+  - type: dropdown
+    id: admin
+    attributes:
+      label: Mit Administratorrechten gestartet?
+      options: ["Ja", "Nein", "Weiß nicht"]

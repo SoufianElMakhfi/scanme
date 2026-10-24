@@ -11,7 +11,7 @@
     <Version>1.0.1</Version>
     <Company>ScanMe</Company>
     <Product>ScanMe Blue Team</Product>
-    <Copyright>Soufian El Makhfi</Copyright>
+    <Copyright>Copyright (c) 2026 Soufian El Makhfi und Mitwirkende - GPL-3.0</Copyright>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
 </Project>

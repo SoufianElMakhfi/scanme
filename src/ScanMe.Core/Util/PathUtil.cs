@@ -10,6 +10,8 @@ public static partial class PathUtil
     public static readonly string ProgramFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
     public static readonly string ProgramFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
     public static readonly string ProgramData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+    /// <summary>Laufwerk, auf dem Windows installiert ist (nicht zwingend C:).</summary>
+    public static readonly string SystemDrive = Path.GetPathRoot(WindowsDir) ?? @"C:\";
     public static readonly string UsersRoot = Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? @"C:\Users";
 
     private static readonly string[] ExecutableExtensions = [".exe", ".dll", ".sys", ".scr", ".com", ".bat", ".cmd", ".ps1", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".hta", ".cpl", ".msi", ".lnk", ".ocx", ".pif"];
