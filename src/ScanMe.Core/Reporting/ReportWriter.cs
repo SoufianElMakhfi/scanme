@@ -49,16 +49,16 @@ public static class ReportWriter
             sb.Append($"<div class='stat'><span class='muted'>{s.German()}</span><b style='color:{Color(s)}'>{list.Count(f => f.Severity == s)}</b></div>");
         sb.Append("</div>");
 
-        // Zeitleiste der auffaelligen Funde â€“ fuer Helfer oft der schnellste Weg, den Ablauf zu verstehen.
+        // Zeitleiste der auffaelligen Funde – fuer Helfer oft der schnellste Weg, den Ablauf zu verstehen.
         var timeline = Engine.Timeline.Build(list.Where(Engine.Timeline.IsNotable));
         if (timeline.Entries.Count > 0)
         {
-            sb.Append("<h2>Zeitleiste (auffÃ¤llige Funde)</h2><table>");
+            sb.Append("<h2>Zeitleiste (auffällige Funde)</h2><table>");
             foreach (var e in timeline.Entries.Take(100))
             {
                 var t = e.Finding.OccurredAt!.Value;
-                sb.Append($"<tr><td>{(e.Finding.OccurredDayOnly ? t.ToString("dd.MM.yyyy") : t.ToString("dd.MM.yyyy HH:mm"))}{(e.Cluster != 0 ? $" <b style='color:#F2762E'>âš  HÃ¤ufung {e.Cluster}</b>" : "")}</td>" +
-                          $"<td>{E(e.Finding.Title)} <span class='muted'>Â· {E(e.Finding.OccurredWhat ?? "")}</span></td></tr>");
+                sb.Append($"<tr><td>{(e.Finding.OccurredDayOnly ? t.ToString("dd.MM.yyyy") : t.ToString("dd.MM.yyyy HH:mm"))}{(e.Cluster != 0 ? $" <b style='color:#F2762E'>⚠ Häufung {e.Cluster}</b>" : "")}</td>" +
+                          $"<td>{E(e.Finding.Title)} <span class='muted'>· {E(e.Finding.OccurredWhat ?? "")}</span></td></tr>");
             }
             sb.Append("</table>");
         }
