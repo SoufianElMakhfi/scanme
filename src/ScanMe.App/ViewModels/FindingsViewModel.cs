@@ -55,6 +55,25 @@ public sealed partial class FindingsViewModel : ObservableObject
         SelectedItem = View.Cast<FindingItemViewModel>().FirstOrDefault();
     }
 
+    /// <summary>Waehlt einen Fund aus und lockert dafuer, falls noetig, die Filter (Sprung aus Zeitleiste/Uebersicht).</summary>
+    public void Reveal(FindingItemViewModel item)
+    {
+        if (!View.Cast<object>().Contains(item))
+        {
+            Search = "";
+            SelectedCategory = "Alle Kategorien";
+            switch (item.Verdict)
+            {
+                case Verdict.Act: ShowAct = true; break;
+                case Verdict.Check: ShowCheck = true; break;
+                case Verdict.LikelyHarmless: ShowHarmless = true; break;
+                default: ShowInfo = true; break;
+            }
+            if (item.IsIgnored) ShowIgnored = true;
+        }
+        SelectedItem = item;
+    }
+
     private void Refresh()
     {
         View.Refresh();

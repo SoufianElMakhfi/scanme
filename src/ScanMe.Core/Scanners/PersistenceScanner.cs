@@ -419,6 +419,8 @@ public sealed partial class PersistenceScanner : IScanner
         foreach (var hive in RegistryUtil.LoadedUserHives())
         {
             string key = $@"{hive}\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU";
+            // Der Schluessel aendert sich bei jeder Eingabe – sein Zeitstempel gilt also nur fuer den juengsten Eintrag (erster Buchstabe in MRUList).
+            string? newest = RegistryUtil.GetString(key, "MRUList") is { Length: > 0 } mru ? mru[..1] : null;
             foreach (var (name, value) in RegistryUtil.Values(key))
             {
                 if (name.Equals("MRUList", StringComparison.OrdinalIgnoreCase) || value is not string entry) continue;
@@ -441,6 +443,7 @@ public sealed partial class PersistenceScanner : IScanner
                 f.AddIndicator("RUNMRU", "Befehl wurde manuell über Win+R ausgeführt", 15);
                 foreach (var r in rules) f.AddIndicator("CMD_" + r.Id, r.Text + (r.Mitre != null ? $" [{r.Mitre}]" : ""), r.Weight);
                 f.Detail("Benutzer", RegistryUtil.SidToUser(hive[4..])).Detail("Befehl", command);
+                if (name.Equals(newest, StringComparison.OrdinalIgnoreCase)) f.At(RegistryUtil.LastWriteTime(key), "Über Win+R ausgeführt");
                 f.Actions.Add(new RemediationAction { Kind = RemediationKind.DeleteRegistryValue, Label = "Verlaufseintrag entfernen", Target = key, Argument = name });
                 ctx.Add(f);
             }

@@ -21,6 +21,7 @@ public sealed partial class MainViewModel : ObservableObject
         Settings = AppSettings.Load();
         Dashboard = new DashboardViewModel(this);
         Findings = new FindingsViewModel(this);
+        Timeline = new TimelineViewModel(this);
         Processes = new ProcessesViewModel();
         Quarantine = new QuarantineViewModel();
         SettingsPage = new SettingsViewModel(this);
@@ -35,6 +36,7 @@ public sealed partial class MainViewModel : ObservableObject
     public AppSettings Settings { get; }
     public DashboardViewModel Dashboard { get; }
     public FindingsViewModel Findings { get; }
+    public TimelineViewModel Timeline { get; }
     public ProcessesViewModel Processes { get; }
     public QuarantineViewModel Quarantine { get; }
     public SettingsViewModel SettingsPage { get; }
@@ -75,6 +77,7 @@ public sealed partial class MainViewModel : ObservableObject
         CurrentPage = page switch
         {
             "Findings" => Findings,
+            "Timeline" => Timeline,
             "Processes" => Processes,
             "Monitor" => Monitor,
             "Hardening" => Hardening,
@@ -84,12 +87,13 @@ public sealed partial class MainViewModel : ObservableObject
         };
         if (CurrentPage == Processes && Processes.Rows.Count == 0) Processes.RefreshCommand.Execute(null);
         if (CurrentPage == Quarantine) Quarantine.RefreshCommand.Execute(null);
+        if (CurrentPage == Timeline) Timeline.Reload();
         if (CurrentPage == Hardening && !Hardening.Loaded) Hardening.RefreshCommand.Execute(null);
     }
 
     public void ShowFinding(FindingItemViewModel item)
     {
-        Findings.SelectedItem = item;
+        Findings.Reveal(item);
         Navigate("Findings");
     }
 
@@ -134,6 +138,7 @@ public sealed partial class MainViewModel : ObservableObject
             var report = await engine.RunAsync(Settings.ToScanOptions(profile), progress, _cts.Token);
             LastReport = report;
             Findings.Load(report);
+            Timeline.Reload();
             Dashboard.Update(report);
             SaveReport(report);
             ScanStatus = report.Cancelled ? "Scan abgebrochen – Teilergebnis." : $"Scan abgeschlossen: {report.Findings.Count(f => f.Severity >= Severity.Low)} relevante Funde.";

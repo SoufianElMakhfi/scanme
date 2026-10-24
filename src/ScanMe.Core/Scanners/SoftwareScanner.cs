@@ -56,6 +56,7 @@ public sealed class SoftwareScanner : IScanner
             };
             f.Detail("Version", p.Version).Detail("Hersteller", p.Publisher).Detail("Installiert am", p.InstallDate?.ToString("d"))
              .Detail("Installationsort", p.Location).Detail("Deinstallation", p.Uninstall).Detail("Installiert für", p.Scope);
+            f.At(p.InstallDate, "Installiert", dayOnly: true);
 
             // --- PUP ---
             var pup = PupCatalog.FindByDisplayName(p.Name);
@@ -116,6 +117,7 @@ public sealed class SoftwareScanner : IScanner
             Recommendation = "Liste durchgehen: Ist alles von Ihnen selbst installiert worden?",
         };
         f.AddIndicator("RECENT_INSTALLS", $"{recent.Count} Programme in den letzten 14 Tagen installiert", 0);
+        f.At(recent[0].InstallDate, "Zuletzt installiert", dayOnly: true);
         ctx.Add(f);
     }
 

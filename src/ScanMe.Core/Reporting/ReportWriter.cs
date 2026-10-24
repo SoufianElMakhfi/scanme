@@ -49,6 +49,20 @@ public static class ReportWriter
             sb.Append($"<div class='stat'><span class='muted'>{s.German()}</span><b style='color:{Color(s)}'>{list.Count(f => f.Severity == s)}</b></div>");
         sb.Append("</div>");
 
+        // Zeitleiste der auffaelligen Funde â€“ fuer Helfer oft der schnellste Weg, den Ablauf zu verstehen.
+        var timeline = Engine.Timeline.Build(list.Where(Engine.Timeline.IsNotable));
+        if (timeline.Entries.Count > 0)
+        {
+            sb.Append("<h2>Zeitleiste (auffÃ¤llige Funde)</h2><table>");
+            foreach (var e in timeline.Entries.Take(100))
+            {
+                var t = e.Finding.OccurredAt!.Value;
+                sb.Append($"<tr><td>{(e.Finding.OccurredDayOnly ? t.ToString("dd.MM.yyyy") : t.ToString("dd.MM.yyyy HH:mm"))}{(e.Cluster != 0 ? $" <b style='color:#F2762E'>âš  HÃ¤ufung {e.Cluster}</b>" : "")}</td>" +
+                          $"<td>{E(e.Finding.Title)} <span class='muted'>Â· {E(e.Finding.OccurredWhat ?? "")}</span></td></tr>");
+            }
+            sb.Append("</table>");
+        }
+
         foreach (var group in list.Where(f => f.Severity >= Severity.Low).GroupBy(f => f.Category).OrderByDescending(g => g.Max(f => f.Score)))
         {
             sb.Append($"<h2>{E(group.Key.German())}</h2>");
@@ -56,6 +70,8 @@ public static class ReportWriter
             {
                 sb.Append($"<div class='f' style='border-left-color:{Color(f.Severity)}'>");
                 sb.Append($"<h3><span class='badge' style='background:{Color(f.Severity)}'>{E(f.Severity.German())} {f.Score}</span>{E(f.Title)}</h3>");
+                if (f.OccurredAt is { } when)
+                    sb.Append($"<div class='muted'>{E(f.OccurredWhat ?? "")}: {(f.OccurredDayOnly ? when.ToString("dd.MM.yyyy") : when.ToString("dd.MM.yyyy HH:mm"))}</div>");
                 if (f.Description.Length > 0) sb.Append($"<div>{E(f.Description)}</div>");
                 if (f.Explanation.Length > 0) sb.Append($"<div class='muted'>{E(f.Explanation)}</div>");
                 if (f.Recommendation.Length > 0) sb.Append($"<div class='rec'><b>Empfehlung:</b> {E(f.Recommendation)}</div>");

@@ -146,6 +146,8 @@ public sealed partial class PersistenceScanner
                     if (isMicrosoftTask && !f.IsProtected && f.FilePath != null)
                         f.AddIndicator("TASK_MS_FOLDER", "Liegt im Microsoft-Aufgabenordner, startet aber keine Windows-Komponente (Tarnung?)", 15);
                     if (highest && runAs is "S-1-5-18" or "SYSTEM") f.AddIndicator("TASK_SYSTEM", "Läuft mit SYSTEM-Rechten", 5);
+                    // Die Aufgabendatei entsteht beim Registrieren; das Datum in der XML legt der Ersteller selbst fest.
+                    f.At(File.GetCreationTime(file), "Aufgabe angelegt");
                     f.Detail("Auslöser", string.Join(", ", triggers))
                      .Detail("Ausführen als", runAs)
                      .Detail("Autor", author)
@@ -222,6 +224,8 @@ public sealed partial class PersistenceScanner
             f.AddIndicator(hasSd ? "TASK_NO_FILE" : "TASK_NO_SD",
                 hasSd ? "Aufgabe ohne Aufgabendatei" : "Aufgabe ohne Sicherheitsdeskriptor (bewusst versteckt)", orphanedWindowsTask ? 5 : hasSd ? 25 : 80);
             f.Detail("Task-ID", id).Detail("Registry", key);
+            // Das Entfernen des Sicherheitsdeskriptors aendert den Schluessel – der Zeitpunkt zeigt dann das Verstecken.
+            f.At(RegistryUtil.LastWriteTime(key), hasSd ? "Aufgabe zuletzt geändert" : "Aufgabe versteckt");
             ctx.Add(f);
         }
     }
@@ -436,6 +440,7 @@ public sealed partial class PersistenceScanner
                 Recommendation = "Inhalt prüfen. Wenn Sie das Profil nicht selbst angelegt haben: Datei in Quarantäne verschieben.",
             };
             f.AddIndicator("PS_PROFILE", "PowerShell-Profil vorhanden", 5);
+            f.At(File.GetLastWriteTime(file), "Profil geändert");
             ScanScriptContent(f, file);
             f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort öffnen", Target = file, RequiresConfirmation = false });
             f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantäne verschieben", Target = file });

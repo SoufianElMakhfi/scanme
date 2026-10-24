@@ -47,6 +47,16 @@ public sealed class Finding
 
     public DateTime DetectedAt { get; init; } = DateTime.Now;
 
+    // --- Zeitleiste: wann das Gefundene tatsaechlich passiert ist (nicht wann gescannt wurde) ---
+
+    public DateTime? OccurredAt { get; set; }
+
+    /// <summary>Was zu diesem Zeitpunkt geschah, z. B. "Datei erstellt" oder "Dienst installiert".</summary>
+    public string? OccurredWhat { get; set; }
+
+    /// <summary>Nur das Datum ist bekannt (z. B. Installationsdatum aus der Registry), keine Uhrzeit.</summary>
+    public bool OccurredDayOnly { get; set; }
+
     /// <summary>Stabiler Schluessel zum Wiedererkennen (Ignorierliste, Vergleich zwischen Scans).</summary>
     public string Fingerprint => $"{ScannerId}|{Title}|{FilePath ?? Location}".ToLowerInvariant();
 
@@ -54,6 +64,16 @@ public sealed class Finding
     {
         if (!Indicators.Any(i => i.Code == code))
             Indicators.Add(new Indicator(code, text, weight));
+        return this;
+    }
+
+    /// <summary>Setzt den Ereigniszeitpunkt; unplausible Werte (leer, vor 1990, Zukunft) werden ignoriert.</summary>
+    public Finding At(DateTime? when, string what, bool dayOnly = false)
+    {
+        if (when is not { } w || w.Year < 1990 || w > DateTime.Now.AddDays(1)) return this;
+        OccurredAt = w;
+        OccurredWhat = what;
+        OccurredDayOnly = dayOnly;
         return this;
     }
 

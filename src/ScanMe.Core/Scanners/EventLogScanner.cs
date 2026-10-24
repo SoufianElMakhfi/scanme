@@ -98,6 +98,7 @@ public sealed class EventLogScanner : IScanner
         f.Explanation = "Angreifer löschen Protokolle, um ihre Spuren zu verwischen. Manche Tuning-/Cleaner-Programme tun das ebenfalls.";
         f.Recommendation = "Haben Sie (oder ein Cleaner wie CCleaner) die Protokolle gelöscht? Falls nicht, ist das ein starkes Indiz für einen Einbruch.";
         f.AddIndicator("LOG_CLEARED", $"{events.Count}x Protokoll in den letzten {days} Tagen gelöscht", events.Any(e => e.Log == "Sicherheit") ? 55 : 35);
+        f.At(events.Max(e => e.When), events.Count > 1 ? "Zuletzt Protokoll gelöscht" : "Protokoll gelöscht");
         ctx.Add(f);
     }
 
@@ -108,6 +109,7 @@ public sealed class EventLogScanner : IScanner
             string name = Prop(r, 0) ?? "?";
             string? image = Prop(r, 1);
             var f = NewFinding($"Neuer Dienst installiert: {name}", FindingCategory.Persistence);
+            f.At(r.TimeCreated, "Dienst installiert");
             f.Detail("Installiert am", r.TimeCreated?.ToString("g")).Detail("ImagePath", image).Detail("Starttyp", Prop(r, 3)).Detail("Konto", Prop(r, 4));
 
             var (exe, payload) = PathUtil.ResolveCommandLine(image);
@@ -137,6 +139,7 @@ public sealed class EventLogScanner : IScanner
             f.Explanation = "Nach einem Einbruch legen Angreifer häufig eigene Konten an.";
             f.Recommendation = "Prüfen, ob Sie dieses Konto angelegt haben.";
             f.AddIndicator("ACCOUNT_CREATED", "Neues lokales Konto", 25);
+            f.At(r.TimeCreated, "Konto angelegt");
             ctx.Add(f);
         }
 
@@ -149,6 +152,7 @@ public sealed class EventLogScanner : IScanner
             f.Explanation = "Angreifer verschaffen sich so dauerhafte Adminrechte (MITRE T1098).";
             f.Recommendation = "Prüfen, ob diese Änderung gewollt war.";
             f.AddIndicator("ADMIN_ADDED", "Benutzer zur Administratorgruppe hinzugefügt", 40);
+            f.At(r.TimeCreated, "Zum Administrator gemacht");
             ctx.Add(f);
         }
     }
@@ -156,9 +160,9 @@ public sealed class EventLogScanner : IScanner
     private void Logons(ScanContext ctx, long ms, int days)
     {
         // Fehlgeschlagene Anmeldungen (Brute-Force / Passwort-Spraying)
-        var failed = new List<(string Ip, string User, string Type)>();
+        var failed = new List<(string Ip, string User, string Type, DateTime When)>();
         foreach (var r in Query(ctx, "Security", $"*[System[(EventID=4625) and {Time(ms)}]]"))
-            failed.Add((Prop(r, 19) ?? "-", Prop(r, 5) ?? "?", Prop(r, 10) ?? "?"));
+            failed.Add((Prop(r, 19) ?? "-", Prop(r, 5) ?? "?", Prop(r, 10) ?? "?", r.TimeCreated ?? DateTime.MinValue));
         if (failed.Count >= 20)
         {
             var bySource = failed.GroupBy(x => x.Ip).OrderByDescending(g => g.Count()).Take(10).ToList();
@@ -173,6 +177,7 @@ public sealed class EventLogScanner : IScanner
                 ? "RDP/SMB nicht direkt ins Internet freigeben (Router-Portweiterleitungen prüfen), starke Passwörter und Kontosperre nutzen."
                 : "Prüfen, ob ein Dienst oder Laufwerk mit altem Passwort verbunden ist.";
             f.AddIndicator("BRUTE_FORCE", $"{failed.Count} Fehlversuche in {days} Tagen", external ? 55 : failed.Count > 200 ? 35 : 20);
+            f.At(failed.Max(x => x.When), "Letzter Fehlversuch");
             ctx.Add(f);
         }
 
@@ -192,6 +197,7 @@ public sealed class EventLogScanner : IScanner
                             "hatte ein Fremder vollen Zugriff auf den PC.";
             f.Recommendation = "Waren Sie das (z. B. von unterwegs)? Falls nicht: PC vom Netz trennen, Passwörter ändern, RDP deaktivieren und Fachleute hinzuziehen.";
             f.AddIndicator("RDP_PUBLIC", $"{publicRdp.Count} RDP-Anmeldung(en) von öffentlichen IPs", 70);
+            f.At(publicRdp.Max(x => x.When), publicRdp.Count > 1 ? "Letzte RDP-Anmeldung" : "RDP-Anmeldung");
             ctx.Add(f);
         }
         else if (rdp.Count > 0)
@@ -201,6 +207,7 @@ public sealed class EventLogScanner : IScanner
             f.Explanation = "Anmeldungen per Remotedesktop aus dem lokalen Netzwerk.";
             f.Recommendation = "Prüfen, ob diese Anmeldungen bekannt sind.";
             f.AddIndicator("RDP_LOCAL", "RDP-Anmeldungen", 10);
+            f.At(rdp.Max(x => x.When), rdp.Count > 1 ? "Letzte RDP-Anmeldung" : "RDP-Anmeldung");
             ctx.Add(f);
         }
     }
@@ -222,14 +229,17 @@ public sealed class EventLogScanner : IScanner
         const string log = "Microsoft-Windows-Windows Defender/Operational";
         _defenderChanges.Clear();
         int rtpOff = 0;
+        DateTime? lastRtpOff = null;
         foreach (var r in Query(ctx, log, $"*[System[(EventID=5007 or EventID=5001) and {Time(ms)}]]"))
         {
-            if (r.Id == 5001) { rtpOff++; continue; }
+            // Rueckwaerts gelesen: das erste 5001-Ereignis ist das juengste.
+            if (r.Id == 5001) { rtpOff++; lastRtpOff ??= r.TimeCreated; continue; }
             _defenderChanges.Add(new DefenderChange(r.TimeCreated ?? DateTime.MinValue, (Prop(r, 2) ?? "").Trim(), (Prop(r, 3) ?? "").Trim()));
         }
 
         // Nur HINZUGEFUEGTE Ausnahmen sind ein Risiko – entfernte verbessern den Schutz.
-        var exclusions = _defenderChanges.Where(c => c.IsExclusion && c.Added).Select(c => $"{c.When:g}: {c.Item}").ToList();
+        var added = _defenderChanges.Where(c => c.IsExclusion && c.Added).ToList();
+        var exclusions = added.Select(c => $"{c.When:g}: {c.Item}").ToList();
         if (exclusions.Count > 0)
         {
             var f = NewFinding($"Defender-Ausnahmen wurden hinzugefügt ({exclusions.Count})", FindingCategory.SecurityConfig);
@@ -237,6 +247,7 @@ public sealed class EventLogScanner : IScanner
             f.Explanation = "Malware fügt nach der Infektion gern Defender-Ausnahmen für ihre eigenen Ordner hinzu.";
             f.Recommendation = "Prüfen, ob Sie diese Ausnahmen selbst angelegt haben (Windows-Sicherheit → Ausschlüsse).";
             f.AddIndicator("DEF_EXCL_ADDED", "Ausnahmen in Defender-Konfiguration hinzugefügt", 30);
+            f.At(added.Max(c => c.When), added.Count > 1 ? "Zuletzt Defender-Ausnahme hinzugefügt" : "Defender-Ausnahme hinzugefügt");
             ctx.Add(f);
         }
         if (rtpOff > 0)
@@ -246,6 +257,7 @@ public sealed class EventLogScanner : IScanner
             f.Explanation = "Kurzzeitiges Deaktivieren ist manchmal für Installationen nötig – Malware tut es aber ebenfalls.";
             f.Recommendation = "Prüfen, ob Sie den Schutz bewusst deaktiviert haben.";
             f.AddIndicator("DEF_RTP_OFF", "Echtzeitschutz zeitweise deaktiviert", rtpOff > 3 ? 25 : 10);
+            f.At(lastRtpOff, rtpOff > 1 ? "Zuletzt Echtzeitschutz deaktiviert" : "Echtzeitschutz deaktiviert");
             ctx.Add(f);
         }
     }
@@ -356,6 +368,7 @@ public sealed class EventLogScanner : IScanner
                 : "Unbedenklich, wenn das Skript von einem bekannten Programm stammt (siehe 'Skriptpfad' und 'Prozess'). Bedenklich sind Skripte ohne Pfad, " +
                   "die Inhalte aus dem Internet laden und direkt ausführen, Base64 dekodieren oder Speicher manipulieren – dann vollständigen Scan starten und Passwörter ändern.";
 
+        f.At(block.When, "PowerShell-Skript ausgeführt");
         f.Detail("Zeitpunkt", block.When.ToString("G"))
          .Detail("Benutzer", user)
          .Detail("Prozess-ID", block.ProcessId?.ToString())

@@ -190,6 +190,15 @@ public static class ExecutableAssessor
          .Detail("Geändert", info.Modified?.ToString("g"))
          .Detail("Download-Quelle", info.DownloadUrl)
          .Detail("Download-Referrer", info.DownloadReferrer);
+        // Nur als Rueckfall: Scanner mit genauerem Zeitpunkt (Dienst installiert, Aufgabe angelegt ...) haben Vorrang.
+        // Windows-Dateien stammen aus der Installation bzw. aus Updates und sagen nichts ueber einen Vorfall.
+        // Der spaetere der beiden Zeitpunkte: Kopieren setzt die Erstellzeit neu, Ueberschreiben nur die Aenderungszeit.
+        // Ein paar Minuten Abstand entstehen schon beim Schreiben/Herunterladen selbst und gelten noch als "erstellt".
+        if (f.OccurredAt == null && !info.IsWindowsComponent)
+        {
+            if (info.Modified - info.Created > TimeSpan.FromMinutes(10)) f.At(info.Modified, "Datei geändert");
+            else f.At(info.Created, info.DownloadUrl != null ? "Heruntergeladen" : "Datei erstellt");
+        }
     }
 
     public static void AddFileActions(Finding f, FileTrustInfo info)

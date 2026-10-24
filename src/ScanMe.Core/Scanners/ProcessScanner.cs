@@ -128,6 +128,7 @@ public sealed class ProcessScanner : IScanner
             };
             f.AddIndicator("WMI_MISMATCH", "Prozess fehlt in der WMI-Prozessliste", 30);
             if (p.ImagePath != null) ExecutableAssessor.Assess(f, p.ImagePath, ctx.Trust);
+            if (f.OccurredAt == null) f.At(p.StartTime, "Prozess gestartet");
             ctx.Add(f);
         }
     }
@@ -168,6 +169,8 @@ public sealed class ProcessScanner : IScanner
 
         var info = p.ImagePath != null ? ExecutableAssessor.Assess(f, p.ImagePath, ctx.Trust, addActions: true) : null;
         if (info == null && !ctx.IsElevated) return null; // ohne Pfad und ohne Rechte keine sinnvolle Bewertung
+        // Bei Windows-Programmen (PowerShell aus Word ...) zaehlt der Start, bei fremden Programmen die Ankunft der Datei.
+        if (f.OccurredAt == null) f.At(p.StartTime, "Prozess gestartet");
 
         var profile = SystemProcesses.Get(p.Name);
 

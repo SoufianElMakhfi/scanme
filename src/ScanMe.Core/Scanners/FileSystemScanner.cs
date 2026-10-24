@@ -232,6 +232,8 @@ public sealed partial class FileSystemScanner : IScanner
 
         f.Description = $"{fi.FullName} ({TextUtil.FormatBytes(fi.Length)}, erstellt {fi.CreationTime:g})" +
                         (f.Details.TryGetValue("Download-Quelle", out var url) ? $" – heruntergeladen von {url}" : "");
+        // Programme haben den Zeitpunkt schon ueber ExecutableAssessor; Skripte, Verknuepfungen und Container hier.
+        if (f.OccurredAt == null) f.At(fi.CreationTime, url != null ? "Heruntergeladen" : "Datei erstellt");
         f.Explanation ??= "";
         if (f.Explanation.Length == 0)
             f.Explanation = "Die Datei liegt an einem Ort, den Malware und Phishing-Anhänge typischerweise nutzen, und weist die aufgeführten Merkmale auf.";
@@ -387,6 +389,7 @@ public sealed partial class FileSystemScanner : IScanner
                 // Kleine Stroeme setzen auch Backup-/AV-Programme zur Dateimarkierung – erst gross oder mit Programm relevant.
                 bool big = data.StreamSize > 64 * 1024;
                 f.AddIndicator("ADS", "Versteckter alternativer Datenstrom", big ? 40 : 5);
+                f.At(fi.LastWriteTime, "Datei zuletzt geändert");
                 try
                 {
                     using var fs = new FileStream($"{fi.FullName}:{stream}", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -426,6 +429,7 @@ public sealed partial class FileSystemScanner : IScanner
             Recommendation = "PC sofort vom Netzwerk trennen, nicht bezahlen, keine Dateien löschen. Auf nomoreransom.org prüfen, ob es ein Entschlüsselungstool gibt, und Fachleute bzw. die Polizei (Cybercrime) einschalten.",
         };
         f.AddIndicator("RANSOM_NOTE", "Typische Inhalte einer Ransomware-Notiz", 60 + hits * 5);
+        f.At(fi.CreationTime, "Lösegeldnotiz erstellt");
         f.Detail("Auszug", TextUtil.Truncate(content, 400));
         ctx.Add(f);
     }

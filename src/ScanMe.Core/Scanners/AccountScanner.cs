@@ -57,6 +57,7 @@ public sealed class AccountScanner : IScanner
             };
             f.Detail("SID", a.Sid).Detail("Administrator", isAdmin ? "ja" : "nein").Detail("Status", a.Disabled ? "deaktiviert" : "aktiv")
              .Detail("Profilordner", profileDir).Detail("Profil angelegt", created?.ToString("g"));
+            f.At(created, "Erste Anmeldung (Profil angelegt)");
 
             if (a.Disabled)
             {

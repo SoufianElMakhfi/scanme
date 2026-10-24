@@ -64,6 +64,7 @@ public partial class MainWindow : Window
         var nav = _vm.CurrentPage switch
         {
             FindingsViewModel => NavFindings,
+            TimelineViewModel => NavTimeline,
             ProcessesViewModel => NavProcesses,
             MonitorViewModel => NavMonitor,
             HardeningViewModel => NavHardening,

@@ -10,6 +10,7 @@
     <Window.Resources>
         <DataTemplate DataType="{x:Type vm:DashboardViewModel}"><views:DashboardView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:FindingsViewModel}"><views:FindingsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:TimelineViewModel}"><views:TimelineView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:ProcessesViewModel}"><views:ProcessesView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:QuarantineViewModel}"><views:QuarantineView /></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView /></DataTemplate>
@@ -62,6 +63,8 @@
                                  Command="{Binding NavigateCommand}" CommandParameter="Dashboard" x:Name="NavDashboard" />
                     <RadioButton Style="{StaticResource NavButton}" Content="Funde" GroupName="nav"
                                  Command="{Binding NavigateCommand}" CommandParameter="Findings" x:Name="NavFindings" />
+                    <RadioButton Style="{StaticResource NavButton}" Content="Zeitleiste" GroupName="nav"
+                                 Command="{Binding NavigateCommand}" CommandParameter="Timeline" x:Name="NavTimeline" />
                     <RadioButton Style="{StaticResource NavButton}" Content="Schutz-Assistent" GroupName="nav" x:Name="NavHardening"
                                  Command="{Binding NavigateCommand}" CommandParameter="Hardening" />
                     <RadioButton Style="{StaticResource NavButton}" Content="Prozesse (live)" GroupName="nav" x:Name="NavProcesses"

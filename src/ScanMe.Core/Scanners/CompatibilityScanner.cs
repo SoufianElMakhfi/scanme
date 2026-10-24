@@ -115,6 +115,7 @@ public sealed class CompatibilityScanner : IScanner
                 "Bluescreens werden meist von fehlerhaften Treibern, defektem RAM oder Überhitzung verursacht – selten auch von Rootkits.",
                 "Treiber (v. a. Grafik, Chipsatz) aktualisieren, Arbeitsspeicher prüfen (mdsched.exe). Minidumps lassen sich mit WinDbg analysieren.");
             f.Detail("Minidumps", $"{dumpCount} in {dumps}");
+            f.At(bsods.Max(b => b.When), bsods.Count > 1 ? "Letzter Bluescreen" : "Bluescreen");
         }
 
         int unexpected = Query("System", $"*[System[Provider[@Name='Microsoft-Windows-Kernel-Power'] and (EventID=41) and TimeCreated[timediff(@SystemTime) <= {d30}]]]").Count();

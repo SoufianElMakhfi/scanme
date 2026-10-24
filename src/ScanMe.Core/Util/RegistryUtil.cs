@@ -72,6 +72,19 @@ public static class RegistryUtil
         catch { return []; }
     }
 
+    /// <summary>Letzte Aenderung eines Schluessels. Gilt fuer den ganzen Schluessel, Windows speichert keine Zeit pro Wert.</summary>
+    public static DateTime? LastWriteTime(string fullPath)
+    {
+        using var key = Open(fullPath);
+        if (key == null) return null;
+        try
+        {
+            var z = IntPtr.Zero;
+            return Native.NativeMethods.RegQueryInfoKey(key.Handle, z, z, z, z, z, z, z, z, z, z, out long ft) == 0 ? DateTime.FromFileTime(ft) : null;
+        }
+        catch { return null; }
+    }
+
     /// <summary>Alle geladenen Benutzer-Hives (angemeldete Benutzer) als "HKU\SID".</summary>
     public static IEnumerable<string> LoadedUserHives()
     {

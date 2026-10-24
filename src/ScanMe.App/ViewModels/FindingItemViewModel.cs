@@ -29,6 +29,11 @@ public sealed partial class FindingItemViewModel : ObservableObject
     public IReadOnlyList<ActionItemViewModel> Actions { get; }
     public string Subtitle => Finding.FilePath ?? Finding.Location ?? "";
 
+    /// <summary>z. B. "Datei erstellt: 14.03.2026 14:02" – leer, wenn der Zeitpunkt unbekannt ist.</summary>
+    public string OccurredText => Finding.OccurredAt is { } t
+        ? $"{Finding.OccurredWhat}: {(Finding.OccurredDayOnly ? t.ToString("d") : t.ToString("g"))}"
+        : "";
+
     // --- Laienansicht ---
     public Verdict Verdict => Finding.Verdict;
     public string PlainSummary => Finding.PlainSummary;

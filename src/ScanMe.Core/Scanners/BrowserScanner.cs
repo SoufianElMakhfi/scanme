@@ -151,6 +151,7 @@ public sealed class BrowserScanner : IScanner
                 };
                 f.AddIndicator("FORCED_EXT", "Erweiterung per Richtlinie erzwungen", store ? 35 : 60);
                 f.Detail("Erweiterungs-ID", id).Detail("Update-URL", updateUrl);
+                f.At(RegistryUtil.LastWriteTime($@"{key}\ExtensionInstallForcelist"), "Richtlinie zuletzt geändert");
                 ctx.Add(f);
             }
 
@@ -179,6 +180,7 @@ public sealed class BrowserScanner : IScanner
                 };
                 bool proxy = hijack.Any(h => h.StartsWith("Proxy"));
                 f.AddIndicator("POLICY_HIJACK", "Browser-Einstellungen per Richtlinie erzwungen", proxy ? 50 : 35);
+                f.At(RegistryUtil.LastWriteTime(key), "Richtlinie zuletzt geändert");
                 ctx.Add(f);
             }
         }
@@ -229,6 +231,7 @@ public sealed class BrowserScanner : IScanner
             };
             f.Detail("Erweiterungs-ID", id).Detail("Version", Path.GetFileName(versionDir)).Detail("Profil", profileDir)
              .Detail("Berechtigungen", string.Join(", ", perms.Take(25))).Detail("Update-URL", updateUrl);
+            f.At(ChromeInstallTime(setting) ?? Directory.GetCreationTime(extDir), "Erweiterung installiert");
 
             if (location == 4)
                 f.AddIndicator("EXT_UNPACKED", "Entpackt geladen (Entwicklermodus) – nicht aus einem Store", 35);
@@ -298,6 +301,16 @@ public sealed class BrowserScanner : IScanner
         ["google.com", "youtube.com", "whatsapp.com", "discord.com", "x.com", "twitter.com", "facebook.com", "instagram.com", "linkedin.com",
          "outlook", "office.com", "live.com", "microsoft.com", "slack.com", "teams", "telegram.org", "github.com", "notion.so", "gmail", "spotify.com", "reddit.com"];
 
+    /// <summary>Chrome speichert Zeitpunkte als Mikrosekunden seit 1601 (UTC) in einer Zeichenkette.</summary>
+    private static DateTime? ChromeInstallTime(JsonElement? setting)
+    {
+        foreach (var name in new[] { "first_install_time", "install_time" })
+            if (setting is { } s && s.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
+                && long.TryParse(v.GetString(), out long us) && us > 0)
+                return DateTime.FromFileTimeUtc(us * 10).ToLocalTime();
+        return null;
+    }
+
     private void ScanNotifications(ScanContext ctx, Browser b, string profileDir, JsonElement prefs)
     {
         if (Path_(prefs, "profile", "content_settings", "exceptions", "notifications") is not { ValueKind: JsonValueKind.Object } n) return;
@@ -357,6 +370,8 @@ public sealed class BrowserScanner : IScanner
                     if (signed <= 0) f.AddIndicator("FF_UNSIGNED", "Nicht von Mozilla signiert", 40);
                     if (loc is "app-global" or "winreg-app-global" or "winreg-app-user") f.AddIndicator("FF_EXTERNAL", "Von einem anderen Programm installiert", 25);
                     f.Detail("ID", id).Detail("Installationsort", loc);
+                    if (a.TryGetProperty("installDate", out var inst) && inst.TryGetInt64(out long ms) && ms > 0)
+                        f.At(DateTimeOffset.FromUnixTimeMilliseconds(ms).LocalDateTime, "Erweiterung installiert");
                     ctx.Add(f);
                 }
             }
@@ -424,6 +439,7 @@ public sealed class BrowserScanner : IScanner
                     Recommendation = "Verknüpfung löschen und neu aus dem Startmenü anheften.",
                 };
                 f.AddIndicator("LNK_HIJACK", "Browser-Verknüpfung mit angehängter URL/Erweiterung/Proxy", args.Contains("--load-extension") || args.Contains("--proxy") ? 55 : 40);
+                f.At(File.GetLastWriteTime(lnk), "Verknüpfung geändert");
                 f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "Verknüpfung in Quarantäne", Target = lnk });
                 ctx.Add(f);
             }

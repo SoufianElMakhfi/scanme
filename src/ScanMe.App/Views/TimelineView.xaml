@@ -1,0 +1,159 @@
+<UserControl x:Class="ScanMe.App.Views.TimelineView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="28,24,28,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="Zeitleiste" Style="{StaticResource H1}" />
+            <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" TextWrapping="Wrap" MaxWidth="820" HorizontalAlignment="Left"
+                       Text="Die Funde des letzten Scans in der Reihenfolge, in der sie passiert sind. Mehrere auffällige Ereignisse innerhalb weniger Minuten sind orange markiert – so zeigt sich oft der Ablauf eines Angriffs, z. B. Download → Ausführen → Autostart." />
+        </StackPanel>
+
+        <!-- Filter -->
+        <DockPanel Grid.Row="1" Margin="0,16,0,12" Visibility="{Binding HasReport, Converter={StaticResource Vis}}">
+            <TextBlock DockPanel.Dock="Right" Text="{Binding Summary}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+            <WrapPanel VerticalAlignment="Center">
+                <RadioButton Style="{StaticResource Chip}" GroupName="range" IsChecked="{Binding RangeDay}" Content="24 Stunden" />
+                <RadioButton Style="{StaticResource Chip}" GroupName="range" IsChecked="{Binding RangeWeek}" Content="7 Tage" />
+                <RadioButton Style="{StaticResource Chip}" GroupName="range" IsChecked="{Binding RangeMonth}" Content="30 Tage" />
+                <RadioButton Style="{StaticResource Chip}" GroupName="range" IsChecked="{Binding RangeAll}" Content="Alles" Margin="0,0,18,0" />
+                <ToggleButton Style="{StaticResource Chip}" IsChecked="{Binding OnlyNotable}">
+                    <TextBlock><Run Text="●" Foreground="{StaticResource MediumBrush}" /> Nur Auffälliges</TextBlock>
+                </ToggleButton>
+                <ToggleButton Style="{StaticResource Chip}" IsChecked="{Binding ShowInfo}">
+                    <TextBlock><Run Text="●" Foreground="{StaticResource InfoBrush}" /> Info</TextBlock>
+                </ToggleButton>
+            </WrapPanel>
+        </DockPanel>
+
+        <!-- Noch kein Scan -->
+        <Border Grid.Row="2" Style="{StaticResource Card}" VerticalAlignment="Top" Margin="0,16,0,0" Padding="22"
+                Visibility="{Binding HasReport, Converter={StaticResource InvVis}}">
+            <StackPanel>
+                <TextBlock Text="Noch kein Scan" Style="{StaticResource H2}" />
+                <TextBlock Style="{StaticResource Body}" Margin="0,6,0,0"
+                           Text="Starten Sie in der Übersicht einen vollständigen Scan. Danach sehen Sie hier, was wann auf diesem PC passiert ist." />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2" Visibility="{Binding HasReport, Converter={StaticResource Vis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="6*" MinWidth="360" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="4*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Hinweise -->
+            <StackPanel Grid.ColumnSpan="3" Margin="0,0,0,10">
+                <Border CornerRadius="8" Padding="12,8" Background="{StaticResource Surface2Brush}" Margin="0,0,0,6"
+                        Visibility="{Binding MissingEventLog, Converter={StaticResource Vis}}">
+                    <TextBlock Style="{StaticResource Body}" FontSize="12" Foreground="{StaticResource MediumBrush}"
+                               Text="Das war ein Schnellscan: Ereignisprotokolle (neue Dienste, Konten, Anmeldungen, PowerShell) fehlen. Für die vollständige Zeitleiste einen vollständigen Scan ausführen." />
+                </Border>
+                <TextBlock Style="{StaticResource Muted}" FontSize="12" Visibility="{Binding UntimedCount, Converter={StaticResource Vis}}">
+                    <Run Text="{Binding UntimedCount, Mode=OneWay}" /><Run Text=" Funde ohne Zeitpunkt (z. B. Einstellungen und Zustände) stehen nur unter „Funde“." />
+                </TextBlock>
+            </StackPanel>
+
+            <TextBlock Grid.Row="1" Text="In diesem Zeitraum ist nichts passiert. Größeren Zeitraum wählen?" Style="{StaticResource Muted}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Visibility="{Binding Items.Count, Converter={StaticResource InvVis}}" />
+
+            <!-- ===== Liste ===== -->
+            <ListBox Grid.Row="1" ItemsSource="{Binding View}" SelectedItem="{Binding Selected}" Style="{StaticResource CleanList}"
+                     ItemContainerStyle="{StaticResource CleanListItem}" VirtualizingPanel.IsVirtualizingWhenGrouping="True">
+                <ListBox.GroupStyle>
+                    <GroupStyle>
+                        <GroupStyle.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource Label}" Margin="4,12,0,8" />
+                            </DataTemplate>
+                        </GroupStyle.HeaderTemplate>
+                    </GroupStyle>
+                </ListBox.GroupStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <Border CornerRadius="8,8,0,0" Padding="12,7" Background="#3A2617"
+                                    Visibility="{Binding ClusterHint, Converter={StaticResource Vis}}">
+                                <TextBlock Style="{StaticResource Body}" FontSize="12" Foreground="{StaticResource HighBrush}">
+                                    <Run Text="⚠ " FontWeight="Bold" /><Run Text="{Binding ClusterHint, Mode=OneWay}" />
+                                </TextBlock>
+                            </Border>
+                            <DockPanel Margin="0,9,12,9">
+                                <!-- Immer vorhanden, damit die Uhrzeiten buendig bleiben; nur bei Haeufungen sichtbar -->
+                                <Border DockPanel.Dock="Left" Width="3" Margin="0,-9,0,-9">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding InCluster}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource HighBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                </Border>
+                                <TextBlock DockPanel.Dock="Left" Width="52" Text="{Binding TimeText}" FontFamily="{StaticResource MonoFont}"
+                                           Foreground="{StaticResource MutedBrush}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                <Border DockPanel.Dock="Left" Width="4" CornerRadius="2" Margin="0,0,12,0"
+                                        Background="{Binding Item.Verdict, Converter={StaticResource VerdictBrush}}" />
+                                <Border DockPanel.Dock="Right" CornerRadius="5" Padding="7,1" VerticalAlignment="Center" Margin="10,0,0,0"
+                                        Background="{Binding Item.Verdict, Converter={StaticResource VerdictBrush}}">
+                                    <TextBlock Text="{Binding Item.Verdict, Converter={StaticResource VerdictText}}" FontSize="10" FontWeight="Bold" Foreground="#111" />
+                                </Border>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Item.Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Style="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis">
+                                        <Run Text="{Binding What, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Item.Category, Converter={StaticResource CatText}, Mode=OneWay}" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- ===== Detail ===== -->
+            <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Card}">
+                <Grid>
+                    <TextBlock Text="Ereignis auswählen" Style="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding Selected, Converter={StaticResource InvVis}}" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding Selected, Converter={StaticResource Vis}}">
+                        <StackPanel DataContext="{Binding Selected.Item}">
+                            <Border CornerRadius="5" Padding="9,2" HorizontalAlignment="Left" Background="{Binding Verdict, Converter={StaticResource VerdictBrush}}">
+                                <TextBlock Text="{Binding Verdict, Converter={StaticResource VerdictText}}" FontSize="11" FontWeight="Bold" Foreground="#111" />
+                            </Border>
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding OccurredText}" Style="{StaticResource Muted}" FontSize="12" Margin="0,4,0,0" />
+                            <Border Margin="0,10,0,0" CornerRadius="8" Padding="12,10" BorderThickness="1"
+                                    Background="{Binding Verdict, Converter={StaticResource VerdictBg}}" BorderBrush="{Binding Verdict, Converter={StaticResource VerdictBrush}}">
+                                <TextBlock Text="{Binding PlainSummary}" Style="{StaticResource Body}" />
+                            </Border>
+                            <ItemsControl ItemsSource="{Binding Questions}" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Style="{StaticResource Body}" Margin="0,2"><Run Text="? " Foreground="{StaticResource AccentHoverBrush}" FontWeight="Bold" /><Run Text="{Binding Mode=OneWay}" /></TextBlock>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding Description}" Style="{StaticResource Body}" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Muted}" FontFamily="{StaticResource MonoFont}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" />
+                            <Button Content="Alle Details &amp; Aktionen öffnen" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,16,0,0"
+                                    Command="{Binding DataContext.OpenFindingCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

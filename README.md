@@ -63,6 +63,12 @@ Microsoft Defender wird lokal über `MpCmdRun.exe` befragt; dessen eigene Cloud-
 | **Software** | PUPs, Fernwartungstools (AnyDesk, TeamViewer … – Telefonbetrug!), Installations-Zeitleiste, **Versionen mit aktiv ausgenutzten Lücken** (WinRAR, 7-Zip, Flash, Java …) |
 | **Kompatibilität** | Geräte-/Treiberfehler, Bluescreens, abstürzende Programme inkl. verursachender DLL, Speicherplatz, SMART-Warnungen, mehrere Virenscanner gleichzeitig |
 
+### Zeitleiste
+Alle Funde in der Reihenfolge, in der sie **passiert** sind: Datei heruntergeladen, Dienst installiert, Aufgabe angelegt,
+PowerShell-Skript ausgeführt, Defender-Fund, Konto angelegt … Mehrere auffällige Ereignisse innerhalb weniger Minuten
+werden als **Häufung** markiert – so wird der Ablauf eines Angriffs sichtbar (z. B. Download → Ausführen → Autostart).
+Die Zeitleiste steht auch im exportierten HTML-Bericht.
+
 ### Echtzeitüberwachung
 Neue Prozesse, Autostarts, Dateien (Downloads/Temp/AppData/Autostart), Netzwerkverbindungen unsignierter
 Programme und Änderungen der Hosts-Datei werden **sofort** bewertet. Warnungen erscheinen als
