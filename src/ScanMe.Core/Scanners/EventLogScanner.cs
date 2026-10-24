@@ -333,6 +333,9 @@ public sealed class EventLogScanner : IScanner
         // Die PowerShell-Warnstufe beruht auf denselben Schluesselwoertern – sie zaehlt nur, wenn sonst nichts erklaert, warum.
         f.AddIndicator("PS_FLAGGED", "Von PowerShell als verdächtig markiert", rules.Count == 0 && weakening.Count == 0 ? 15 : 0);
 
+        // Wer hat PowerShell gestartet? (Sysmon bzw. Sicherheitsprotokoll 4688)
+        var origin = byScanMe ? null : Telemetry.Provenance.Annotate(f, block.ProcessId, block.When);
+
         // --- Texte ---
         string what = weakening.Count > 0 ? "schwächt den Virenschutz"
             : improving.Count > 0 && rules.Count == 0 ? "hat den Virenschutz verbessert"
@@ -344,6 +347,7 @@ public sealed class EventLogScanner : IScanner
             : improving.Count > 0 && weakening.Count == 0 && rules.Count == 0
                 ? "Das Skript hat Ausnahmen entfernt bzw. Schutzfunktionen eingeschaltet. PowerShell markiert solche Befehle trotzdem als 'verdächtig', weil es nur auf Schlüsselwörter achtet."
                 : "PowerShell protokolliert Skripte mit sicherheitsrelevanten Befehlen. Entscheidend ist, was tatsächlich ausgeführt wurde – siehe Indikatoren und Skriptblock in den Details.";
+        if (origin != null) f.Explanation += " Herkunft: " + origin.Reason + ".";
         f.Recommendation = byScanMe || (improving.Count > 0 && weakening.Count == 0 && rules.Count == 0)
             ? "Keine Aktion nötig."
             : weakening.Count > 0

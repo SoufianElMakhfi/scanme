@@ -19,7 +19,7 @@ public static class PlainLanguage
         "SCRIPT_LOCATION", "PS_FLAGGED", "BLOAT", "RESOURCE", "WEAK_ONLY", "NO_PATH", "FILE_MISSING", "TASK_SYSTEM", "VIA_HOST",
         "UNRESOLVED", "SVC_UNQUOTED", "EXCL_USERPATH", "EXCL_ORPHANED", "EXCL_OTHER", "RUNMRU", "PS_PROFILE", "GAME_LIBRARY",
         "RDP_LOCAL", "HOSTS_CUSTOM", "DIR_HIDDEN", "APPDATA_ROOT", "RANDOM_DIR", "PACKER", "HIGH_ENTROPY", "RWX_SECTION",
-        "TASK_HIDDEN_FLAG", "ADS", "CONFIG", "COMPAT", "MANY_ADMINS", "RECENT_INSTALLS", "NEW_AUTOSTART", "BASE",
+        "TASK_HIDDEN_FLAG", "ADS", "CONFIG", "COMPAT", "MANY_ADMINS", "RECENT_INSTALLS", "NEW_AUTOSTART", "BASE", "PS_ORIGIN_EXPLORER",
     };
 
     /// <summary>Starke Belege – fuehren unabhaengig vom Score zu "Handeln".</summary>
@@ -28,7 +28,7 @@ public static class PlainLanguage
         "HIDDEN_PROCESS", "MASQUERADE", "LOOKALIKE", "FAKE_MICROSOFT", "DEFENDER_DETECTED", "DEF_ACTIVE", "IMAGE_DELETED",
         "ACCESSIBILITY_REPLACED", "TASK_NO_SD", "DRV_MINER", "EXCL_QUARANTINED", "EXCL_COVERS_MALWARE", "EXCL_MASQUERADE",
         "RANSOM_NOTE", "RANSOM_EXT", "ADS_PE", "RTLO", "DOUBLE_EXT", "DOC_SPAWN", "MULTI_INSTANCE", "BAD_PARENT",
-        "IN_TASKS_DIR", "SIG_INVALID", "DRV_UNSIGNED", "DRV_BAD_SIG",
+        "IN_TASKS_DIR", "SIG_INVALID", "DRV_UNSIGNED", "DRV_BAD_SIG", "PS_ORIGIN_SUSPICIOUS",
     };
 
     public static void Apply(Finding f)
@@ -39,10 +39,15 @@ public static class PlainLanguage
         int evidenceScore = evidence.Sum(i => i.Weight);
         bool hard = evidence.Any(i => HardCodes.Contains(i.Code) || i.Code.StartsWith("CONTENT_", StringComparison.Ordinal));
         // Vergangene PowerShell-Ereignisse: Ob es gewollt war, weiss nur der Nutzer (Skripte, KI-Tools, Automatisierung).
-        bool userIntentDecides = f.ScannerId == "eventlog" && f.Title.StartsWith("PowerShell-Skript", StringComparison.Ordinal);
+        // Ausnahme: Die Startkette zeigt Word, Browser o. ae. als Ausloeser – dann ist es kein bewusster Befehl.
+        bool powerShell = f.ScannerId == "eventlog" && f.Title.StartsWith("PowerShell-Skript", StringComparison.Ordinal);
+        bool userIntentDecides = powerShell && !Has(f, "PS_ORIGIN_SUSPICIOUS");
+        // Aus dem eigenen Terminal/Editor/KI-Tool und ohne gefaehrliche Wirkung: normale Entwicklerarbeit.
+        bool trustedRoutine = powerShell && f.Indicators.Any(i => i.Code == "PS_ORIGIN_TRUSTED") && evidenceScore < 30 && !Has(f, "PS_DEF_WEAKEN");
 
         f.Verdict =
             positives.Count == 0 || (f.Severity == Severity.Info && evidenceScore == 0) ? Verdict.Info
+            : trustedRoutine ? Verdict.LikelyHarmless
             : hard && !userIntentDecides ? Verdict.Act
             : evidenceScore >= 60 && !userIntentDecides && f.Severity >= Severity.High ? Verdict.Act
             : evidenceScore >= 15 ? Verdict.Check
@@ -68,6 +73,19 @@ public static class PlainLanguage
         if (f.ScannerId == "eventlog" && f.Title.StartsWith("PowerShell-Skript", StringComparison.Ordinal))
         {
             string when = f.Details.GetValueOrDefault("Zeitpunkt") ?? "diesem Zeitpunkt";
+            string? chain = f.Details.GetValueOrDefault("Gestartet von");
+            if (f.Indicators.Any(i => i.Code == "PS_ORIGIN_TRUSTED") && chain != null)
+            {
+                string launcher = chain.Split(" → ")[0];
+                f.Questions.Add($"Haben Sie am {when} in {launcher} gearbeitet – selbst oder mit einem KI-Assistenten, der Befehle für Sie ausführt?");
+                f.Questions.Add("Haben Sie kurz davor einen Befehl aus einer Webseite, Anleitung oder Nachricht kopiert und eingefügt? Auch im eigenen Terminal kann ein solcher Befehl ein Angriff sein.");
+                return;
+            }
+            if (Has(f, "PS_ORIGIN_SUSPICIOUS"))
+            {
+                f.Questions.Add($"Haben Sie am {when} bewusst ein Makro, eine Datei aus einer E-Mail oder einen Download geöffnet, der PowerShell starten sollte?");
+                return;
+            }
             f.Questions.Add($"Haben Sie am {when} selbst Befehle in PowerShell eingegeben, ein Skript gestartet oder mit einem KI-Assistenten bzw. einem Automatisierungs-Tool gearbeitet?");
             f.Questions.Add("Wurden Sie kurz davor auf einer Webseite aufgefordert, Tasten wie Win+R und Strg+V zu drücken („Ich bin kein Roboter“)? Dann war es ein Angriff.");
             return;

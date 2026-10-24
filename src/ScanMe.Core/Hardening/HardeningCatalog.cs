@@ -1,6 +1,7 @@
 using System.Management;
 using Microsoft.Win32;
 using ScanMe.Core.Actions;
+using ScanMe.Core.Telemetry;
 using ScanMe.Core.Util;
 
 namespace ScanMe.Core.Hardening;
@@ -261,6 +262,20 @@ public static class HardeningCatalog
                 if (code != 0) return output.Trim();
                 return SetRegDword(@"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit", "ProcessCreationIncludeCmdLine_Enabled", mode == HardeningMode.On ? 1 : null);
             },
+        },
+        new HardeningItem
+        {
+            Id = "log:sysmon",
+            Group = GroupLogging,
+            Title = "Profi-Aufzeichnung mit Microsoft Sysmon",
+            Plain = "Installiert das kostenlose Microsoft-Werkzeug Sysmon (Sysinternals) mit einer ScanMe-Konfiguration: vollständige Startketten, " +
+                    "Verbindungen von Skript-Programmen, Treiber, Zugriffe auf Anmeldedaten und neue Autostarts. ScanMe lädt es direkt von Microsoft und prüft vorher die Signatur.",
+            Protects = "ScanMe erkennt damit, ob ein PowerShell-Befehl aus Ihrem Terminal, Editor oder KI-Tool kam – oder aus Word, dem Browser oder einem unbekannten Programm.",
+            DevNote = "Empfohlen für alle, die viel mit Skripten und KI-Tools arbeiten. Kommandozeilen (auch Passwörter als Parameter) landen im Sysmon-Protokoll. " +
+                      "Eine bereits vorhandene Sysmon-Installation (z. B. von der Firmen-IT) wird nicht verändert.",
+            Recommended = null,
+            Read = () => SysmonService.IsInstalled() ? HardeningState.On : HardeningState.Off,
+            Apply = mode => mode == HardeningMode.Off ? SysmonService.Uninstall() : SysmonService.Install(),
         },
         RegSwitch("log:scriptblock", GroupLogging, "Alle PowerShell-Befehle aufzeichnen",
             "PowerShell protokolliert jeden ausgeführten Befehl – nicht nur die, die es selbst für verdächtig hält.",
