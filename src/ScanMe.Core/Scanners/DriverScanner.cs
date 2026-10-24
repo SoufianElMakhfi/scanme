@@ -44,6 +44,18 @@ public sealed class DriverScanner : IScanner
         ["viragt64.sys"] = "TG Soft", ["rwdrv.sys"] = "RWEverything", ["echo_driver.sys"] = "Echo Anti-Cheat",
     };
 
+    /// <summary>Eingebaute Liste plus signierte Online-Regeln.</summary>
+    private static bool TryVulnerable(string name, out string vendor)
+    {
+        if (VulnerableDrivers.TryGetValue(name, out var v) || Updates.RuleStore.VulnerableDrivers.TryGetValue(name, out v))
+        {
+            vendor = v;
+            return true;
+        }
+        vendor = "";
+        return false;
+    }
+
     public Task ScanAsync(ScanContext ctx)
     {
         ScanBootConfiguration(ctx);
@@ -122,14 +134,14 @@ public sealed class DriverScanner : IScanner
             f.IsProtected = true;
 
         string? original = info.OriginalFilename;
-        if (VulnerableDrivers.TryGetValue(name, out var vendor) || (original != null && VulnerableDrivers.TryGetValue(original, out vendor)))
+        if (TryVulnerable(name, out var vendor) || (original != null && TryVulnerable(original, out vendor)))
             f.AddIndicator("DRV_VULNERABLE", $"Bekannt verwundbarer Treiber ({vendor}) – kann zum Abschalten von Sicherheitssoftware missbraucht werden", 40);
 
         // Umbenannter Treiber: Krypto-Miner bringen z. B. WinRing0.sys unter Tarnnamen mit.
         if (original != null && !original.Equals(name, StringComparison.OrdinalIgnoreCase)
             && Path.GetExtension(original).Equals(".sys", StringComparison.OrdinalIgnoreCase) && !info.IsMicrosoftSigned)
         {
-            bool vulnerable = VulnerableDrivers.ContainsKey(original);
+            bool vulnerable = TryVulnerable(original, out _);
             // Hersteller benennen eigene signierte Treiber oft um (NTIOLib -> NTIOLib_X64) – nur bei verwundbaren Treibern wirklich relevant.
             f.AddIndicator("DRV_RENAMED", $"Treiber wurde umbenannt: eigentlich \"{original}\", hier als \"{name}\"",
                 vulnerable ? 45 : info.Signature == SignatureState.Valid ? 5 : 20);

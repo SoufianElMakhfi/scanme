@@ -47,11 +47,14 @@ public static class KnownTools
         .GroupBy(x => x.p, StringComparer.OrdinalIgnoreCase)
         .ToDictionary(g => g.Key, g => g.First().t, StringComparer.OrdinalIgnoreCase);
 
-    public static Tool? FindByProcessName(string name) => ByProcess.TryGetValue(name, out var t) ? t : null;
+    public static Tool? FindByProcessName(string name) =>
+        ByProcess.TryGetValue(name, out var t) ? t
+            : Updates.RuleStore.KnownTools.FirstOrDefault(x => x.ProcessNames.Contains(name, StringComparer.OrdinalIgnoreCase));
 
     /// <summary>Sucht anhand des Anzeigenamens installierter Software (voller Toolname, z. B. "Chrome Remote Desktop").</summary>
     public static Tool? FindByDisplayName(string displayName) =>
-        All.FirstOrDefault(t => t.Name.Split(" / ").Any(alt => displayName.Contains(alt.Trim(), StringComparison.OrdinalIgnoreCase)));
+        All.Concat(Updates.RuleStore.KnownTools)
+           .FirstOrDefault(t => t.Name.Split(" / ").Any(alt => displayName.Contains(alt.Trim(), StringComparison.OrdinalIgnoreCase)));
 
     public static string KindText(ToolKind k) => k switch
     {

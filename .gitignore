@@ -8,3 +8,7 @@ artifacts/
 *.suo
 *.log
 TestResults/
+
+# Private Signaturschluessel gehoeren NIE ins Repository
+*.pem
+*.key

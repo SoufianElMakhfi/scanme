@@ -406,5 +406,44 @@ public sealed partial class PersistenceScanner : IScanner
             string path = Path.IsPathRooted(dll) ? dll : Path.Combine(PathUtil.System32, dll);
             Evaluate(ctx, new Entry("Netsh-Helper", name, netsh, path, 15, "DLL wird bei jedem Aufruf von netsh geladen", ReportThirdParty: true));
         }
+
+        ScanRunDialogHistory(ctx);
+    }
+
+    /// <summary>
+    /// ClickFix: Eine gefaelschte "Ich bin kein Roboter"-Seite kopiert einen Befehl in die Zwischenablage und
+    /// fordert auf, Win+R, Strg+V, Enter zu druecken. Der Befehl bleibt im Verlauf des Ausfuehren-Dialogs (RunMRU).
+    /// </summary>
+    private void ScanRunDialogHistory(ScanContext ctx)
+    {
+        foreach (var hive in RegistryUtil.LoadedUserHives())
+        {
+            string key = $@"{hive}\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU";
+            foreach (var (name, value) in RegistryUtil.Values(key))
+            {
+                if (name.Equals("MRUList", StringComparison.OrdinalIgnoreCase) || value is not string entry) continue;
+                string command = entry.EndsWith(@"\1", StringComparison.Ordinal) ? entry[..^2] : entry;
+                var rules = CommandLineRules.Match(command).ToList();
+                if (rules.Count == 0) continue;
+
+                var f = new Finding
+                {
+                    ScannerId = Id,
+                    Category = FindingCategory.Malware,
+                    Title = "Verdächtiger Befehl im Ausführen-Dialog (Win+R)",
+                    Location = key,
+                    Description = $"Im Verlauf des Ausführen-Dialogs steht: {TextUtil.Truncate(command, 300)}",
+                    Explanation = "Bei der 'ClickFix'-Masche zeigt eine Webseite ein gefälschtes Captcha und fordert auf, Win+R zu drücken, " +
+                                  "einen (heimlich kopierten) Befehl einzufügen und Enter zu drücken. Dadurch wird Schadsoftware – meist ein Passwortdieb – installiert.",
+                    Recommendation = "Wenn Sie diesen Befehl nicht selbst eingegeben haben: vollständigen Scan durchführen, Passwörter von einem anderen Gerät aus ändern " +
+                                     "und alle Sitzungen abmelden. Den Verlaufseintrag können Sie danach entfernen.",
+                };
+                f.AddIndicator("RUNMRU", "Befehl wurde manuell über Win+R ausgeführt", 15);
+                foreach (var r in rules) f.AddIndicator("CMD_" + r.Id, r.Text + (r.Mitre != null ? $" [{r.Mitre}]" : ""), r.Weight);
+                f.Detail("Benutzer", RegistryUtil.SidToUser(hive[4..])).Detail("Befehl", command);
+                f.Actions.Add(new RemediationAction { Kind = RemediationKind.DeleteRegistryValue, Label = "Verlaufseintrag entfernen", Target = key, Argument = name });
+                ctx.Add(f);
+            }
+        }
     }
 }

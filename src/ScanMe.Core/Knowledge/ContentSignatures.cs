@@ -53,7 +53,7 @@ public static class ContentSignatures
         string ascii = Encoding.Latin1.GetString(data);
         string utf16 = target == Target.Pe && data.Length > 1 ? Encoding.Unicode.GetString(data) : "";
         var result = new List<(Signature, List<string>)>();
-        foreach (var sig in All)
+        foreach (var sig in All.Concat(Updates.RuleStore.ContentSignatures))
         {
             if ((sig.AppliesTo & target) == 0) continue;
             var hits = sig.Patterns

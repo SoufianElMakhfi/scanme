@@ -64,8 +64,13 @@ public static class CommandLineRules
     public static IEnumerable<Rule> Match(string? commandLine)
     {
         if (string.IsNullOrWhiteSpace(commandLine)) yield break;
-        foreach (var rule in Rules)
-            if (rule.Pattern.IsMatch(commandLine))
-                yield return rule;
+        // Eingebaute Regeln + signierte Online-Regeln (die nur ergaenzen, nie ersetzen)
+        foreach (var rule in Rules.Concat(Updates.RuleStore.CommandLineRules))
+        {
+            bool hit;
+            try { hit = rule.Pattern.IsMatch(commandLine); }
+            catch (RegexMatchTimeoutException) { hit = false; }
+            if (hit) yield return rule;
+        }
     }
 }

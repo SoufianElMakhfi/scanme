@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "minAppVersion": "1.0.1",
+  "published": "2026-10-24",
+
+  "commandLineRules": [
+    {
+      "id": "CLICKFIX_CAPTCHA",
+      "pattern": "(powershell|pwsh|cmd|mshta|msiexec|curl|finger|wscript|rundll32).{0,600}(i am not a robot|ich bin kein roboter|captcha|verification id|verify you are human|cloudflare verification|✅)",
+      "weight": 55,
+      "text": "Befehl mit 'Captcha'-/Verifizierungs-Tarntext – typisch für die ClickFix-Phishing-Masche (gefälschte 'Ich bin kein Roboter'-Seite)",
+      "mitre": "T1204.004"
+    },
+    {
+      "id": "MSHTA_REMOTE_ANY",
+      "pattern": "mshta(\\.exe)?\\s+[\"']?https?://",
+      "weight": 50,
+      "text": "mshta lädt eine Anwendung direkt aus dem Internet (häufig bei ClickFix)",
+      "mitre": "T1218.005"
+    },
+    {
+      "id": "PS_IWR_PIPE_IEX",
+      "pattern": "(iwr|irm|invoke-webrequest|invoke-restmethod|curl)\\s+[^|]{0,200}\\|\\s*(iex|invoke-expression)",
+      "weight": 55,
+      "text": "Lädt ein Skript aus dem Internet und führt es sofort aus (Download-Cradle)",
+      "mitre": "T1059.001"
+    },
+    {
+      "id": "FINGER_LOLBIN",
+      "pattern": "finger(\\.exe)?\\s+\\S+@\\S+",
+      "weight": 45,
+      "text": "finger.exe lädt Befehle von einem fremden Server (aktuelle ClickFix-Variante)",
+      "mitre": "T1105"
+    }
+  ],
+
+  "contentSignatures": [
+    {
+      "name": "Lumma Stealer",
+      "family": "Infostealer",
+      "weight": 70,
+      "minHits": 2,
+      "appliesTo": "Any",
+      "patterns": ["LummaC2", "lumma", "/c2sock", "TeslaBrowser/5.5"],
+      "explanation": "Lumma ist einer der meistverbreiteten Passwortdiebe und wird oft über ClickFix-Seiten und gefälschte Cracks verteilt."
+    },
+    {
+      "name": "SilentCryptoMiner",
+      "family": "Miner",
+      "weight": 60,
+      "minHits": 2,
+      "appliesTo": "Pe",
+      "patterns": ["WinRing0", "--cinit-", "nicehash", "xmrig", "-o pool"],
+      "explanation": "Heimlicher Krypto-Miner, der sich gern als Systemprozess tarnt und den WinRing0-Treiber mitbringt."
+    }
+  ],
+
+  "vulnerableSoftware": [
+    {
+      "namePattern": "^Notepad\\+\\+",
+      "fixedIn": "8.8.2",
+      "weight": 20,
+      "text": "Notepad++ vor 8.8.2 enthält eine Lücke zur Rechteausweitung im Installer (CVE-2025-49144)."
+    }
+  ],
+
+  "vulnerableDrivers": {
+    "TrueSight.sys": "RogueKiller (von Ransomware zum Beenden von Virenschutz missbraucht)",
+    "K7RKScan.sys": "K7 Security (BYOVD, CVE-2025-1055)"
+  },
+
+  "knownTools": [
+    {
+      "name": "Level RMM",
+      "kind": "RemoteAccess",
+      "processNames": ["level.exe", "level-windows-amd64.exe"],
+      "note": "Fernwartungsagent, zunehmend von Angreifern genutzt."
+    }
+  ]
+}

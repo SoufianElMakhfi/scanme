@@ -3,3 +3,6 @@
 *.xaml text eol=crlf
 *.csproj text eol=crlf
 *.sln text eol=crlf
+
+# Signierte Regeldateien byte-genau ausliefern (keine Zeilenende-Umwandlung)
+rules/* -text

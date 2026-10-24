@@ -77,7 +77,7 @@ public sealed class SoftwareScanner : IScanner
             }
 
             // --- Verwundbare Versionen ---
-            foreach (var rule in VulnRules)
+            foreach (var rule in VulnRules.Concat(Updates.RuleStore.VulnerableSoftware.Select(v => new VulnRule(v.Name, v.FixedIn, v.Weight, v.Text))))
             {
                 if (!rule.Name.IsMatch(p.Name)) continue;
                 bool affected = rule.FixedIn == null || (TryParseVersion(p.Version ?? p.Name, out var v) && v < rule.FixedIn);

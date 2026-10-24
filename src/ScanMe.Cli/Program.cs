@@ -38,6 +38,43 @@ for (int i = 0; i < args.Length; i++)
     }
 }
 
+// ---- Maintainer-Werkzeuge fuer signierte Regel-Updates ----
+string keyFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".scanme", "rules-signing-key.pem");
+if (args.Length > 0 && args[0] == "--rules-keygen")
+{
+    if (File.Exists(keyFile)) { Console.WriteLine($"Schlüssel existiert bereits: {keyFile} (wird nicht überschrieben)."); return 1; }
+    var (priv, pub) = ScanMe.Core.Updates.RuleSigning.GenerateKeyPair();
+    Directory.CreateDirectory(Path.GetDirectoryName(keyFile)!);
+    File.WriteAllText(keyFile, priv);
+    Console.WriteLine($"Privater Schlüssel: {keyFile}\n→ NIEMALS ins Repository legen, sicher sichern (z. B. Passwort-Manager).\n\nÖffentlicher Schlüssel (in RuleSigning.PublicKey eintragen):\n{pub}");
+    return 0;
+}
+if (args.Length > 1 && args[0] == "--rules-sign")
+{
+    string rulesPath = args[1];
+    string pem = File.ReadAllText(args.Length > 2 ? args[2] : keyFile);
+    byte[] data = File.ReadAllBytes(rulesPath);
+    var set = ScanMe.Core.Updates.RuleStore.Parse(data); // Syntax pruefen, bevor signiert wird
+    string sig = ScanMe.Core.Updates.RuleSigning.Sign(data, pem);
+    File.WriteAllText(rulesPath + ".sig", sig);
+    bool ok = ScanMe.Core.Updates.RuleSigning.Verify(data, sig);
+    Console.WriteLine($"Signiert: {rulesPath}.sig (Regelversion {set.Version}, {set.CommandLineRules.Count} Kommandozeilen-, {set.ContentSignatures.Count} Inhaltsregeln)");
+    Console.WriteLine(ok ? "✔ Passt zum öffentlichen Schlüssel in ScanMe." : "✖ ACHTUNG: passt NICHT zum eingebauten öffentlichen Schlüssel!");
+    return ok ? 0 : 1;
+}
+if (args.Length > 1 && args[0] == "--rules-verify")
+{
+    byte[] data = File.ReadAllBytes(args[1]);
+    bool ok = File.Exists(args[1] + ".sig") && ScanMe.Core.Updates.RuleSigning.Verify(data, File.ReadAllText(args[1] + ".sig"));
+    Console.WriteLine(ok ? "✔ Signatur gültig." : "✖ Signatur ungültig oder fehlt.");
+    return ok ? 0 : 1;
+}
+if (args.Contains("--update-rules"))
+{
+    Console.WriteLine(await ScanMe.Core.Updates.OnlineUpdates.UpdateRulesAsync());
+    return 0;
+}
+
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
