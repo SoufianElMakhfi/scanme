@@ -87,8 +87,13 @@ public static class ExecutableAssessor
                 break;
         }
 
+        // --- Spielebibliotheken: Spiele sind oft unsigniert und verbinden sich ins Internet – das ist normal ---
+        bool game = IsGameLibrary(info.Path);
+        if (game && info.Signature != SignatureState.Valid)
+            f.AddIndicator("GAME_LIBRARY", "Liegt in einer Spielebibliothek (Steam/Epic/GOG/Xbox …) – Spiele sind häufig nicht signiert", -10);
+
         // --- Speicherort ---
-        int locWeight = LocationClassifier.Weight(loc);
+        int locWeight = game ? 0 : LocationClassifier.Weight(loc);
         if (locWeight > 0 && !info.IsWindowsComponent)
         {
             // Signierte Software in AppData (Discord, Teams, VS Code ...) ist normal – Gewicht reduzieren.
@@ -116,8 +121,9 @@ public static class ExecutableAssessor
             f.AddIndicator("RTLO", "Dateiname enthält ein unsichtbares Umkehrzeichen (RTLO) zur Tarnung der Endung", 60);
 
         // --- Systemprozess-Imitation ---
+        // Gueltig signierte Programme eines Herstellers tarnen sich nicht mit Tippfehler-Namen (das Zertifikat nennt den Hersteller).
         var lookalike = SystemProcesses.FindLookalike(fileName);
-        if (lookalike != null)
+        if (lookalike != null && info.Signature != SignatureState.Valid)
             f.AddIndicator("LOOKALIKE", $"Name ahmt den Windows-Prozess \"{lookalike}\" nach", 50);
 
         var profile = SystemProcesses.Get(fileName);
@@ -198,6 +204,15 @@ public static class ExecutableAssessor
         if (!info.IsWindowsComponent && !info.IsMicrosoftSigned && !f.Actions.Any(a => a.Kind == RemediationKind.QuarantineFile))
             f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantäne verschieben", Target = info.Path });
     }
+
+    private static readonly string[] GameLibraryMarkers =
+    [
+        @"\steamapps\common\", @"\Epic Games\", @"\GOG Galaxy\Games\", @"\GOG Games\", @"\XboxGames\", @"\Riot Games\",
+        @"\Ubisoft Game Launcher\games\", @"\EA Games\", @"\Battle.net\", @"\Blizzard Entertainment\", @"\Rockstar Games\",
+    ];
+
+    public static bool IsGameLibrary(string? path) =>
+        path != null && GameLibraryMarkers.Any(m => path.Contains(m, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Programmdateien, bei denen eine Signatur zu erwarten ist.</summary>
     public static bool IsBinary(string fileName) =>

@@ -84,8 +84,22 @@
                                Visibility="{Binding Selected, Converter={StaticResource InvVis}}" />
                     <ScrollViewer VerticalScrollBarVisibility="Auto" DataContext="{Binding Selected.Item}" Visibility="{Binding Converter={StaticResource Vis}}">
                         <StackPanel>
-                            <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding Description}" Style="{StaticResource Body}" Margin="0,8,0,0" />
+                            <Border CornerRadius="5" Padding="9,2" HorizontalAlignment="Left" Background="{Binding Verdict, Converter={StaticResource VerdictBrush}}">
+                                <TextBlock Text="{Binding Verdict, Converter={StaticResource VerdictText}}" FontSize="11" FontWeight="Bold" Foreground="#111" />
+                            </Border>
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource H2}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                            <Border Margin="0,10,0,0" CornerRadius="8" Padding="12,10" BorderThickness="1"
+                                    Background="{Binding Verdict, Converter={StaticResource VerdictBg}}" BorderBrush="{Binding Verdict, Converter={StaticResource VerdictBrush}}">
+                                <TextBlock Text="{Binding PlainSummary}" Style="{StaticResource Body}" />
+                            </Border>
+                            <ItemsControl ItemsSource="{Binding Questions}" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Style="{StaticResource Body}" Margin="0,2"><Run Text="? " Foreground="{StaticResource AccentHoverBrush}" FontWeight="Bold" /><Run Text="{Binding Mode=OneWay}" /></TextBlock>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding Description}" Style="{StaticResource Body}" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0" />
                             <TextBlock Text="{Binding Recommendation}" Style="{StaticResource Body}" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0" />
                             <ItemsControl ItemsSource="{Binding Actions}" Margin="0,12,0,0">
                                 <ItemsControl.ItemsPanel>

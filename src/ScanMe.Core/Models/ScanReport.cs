@@ -30,12 +30,12 @@ public sealed class ScanReport
     {
         get
         {
-            double penalty = Findings.Sum(f => f.Severity switch
+            // Nach Laien-Ampel: Nur echte Belege ("Handeln") druecken den Wert stark;
+            // "wahrscheinlich harmlos" (z. B. nur unsigniert) zaehlt gar nicht.
+            double penalty = Findings.Sum(f => f.Verdict switch
             {
-                Severity.Critical => 25.0,
-                Severity.High => 10.0,
-                Severity.Medium => 3.0,
-                Severity.Low => 0.5,
+                Verdict.Act => f.Severity == Severity.Critical ? 25.0 : 15.0,
+                Verdict.Check => 3.0,
                 _ => 0.0,
             });
             return Math.Clamp(100 - (int)Math.Round(penalty), 0, 100);

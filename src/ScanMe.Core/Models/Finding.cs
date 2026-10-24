@@ -19,6 +19,20 @@ public sealed class Finding
     public Severity Severity { get; set; }
     public int Score { get; set; }
 
+    // --- Laienverstaendliche Einschaetzung (siehe Engine/PlainLanguage) ---
+
+    /// <summary>Ampel fuer Nicht-Experten.</summary>
+    public Verdict Verdict { get; set; }
+
+    /// <summary>Ein bis zwei Saetze ohne Fachbegriffe: Was heisst das fuer mich?</summary>
+    public string PlainSummary { get; set; } = "";
+
+    /// <summary>Ja/Nein-Fragen, die nur der Nutzer beantworten kann (z. B. "Kennen Sie dieses Programm?").</summary>
+    public List<string> Questions { get; } = new();
+
+    /// <summary>Was tun, wenn der Nutzer das NICHT kennt – ein konkreter Schritt.</summary>
+    public string IfUnknown { get; set; } = "";
+
     public string? FilePath { get; set; }
     public int? ProcessId { get; set; }
     public string? Location { get; set; }

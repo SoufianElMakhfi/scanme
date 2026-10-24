@@ -24,6 +24,19 @@ public enum FindingCategory
     Compatibility,
 }
 
+/// <summary>Einfache Ampel fuer Laien – unabhaengig vom technischen Score.</summary>
+public enum Verdict
+{
+    /// <summary>Nur zur Information, nichts zu tun.</summary>
+    Info,
+    /// <summary>Nur schwache Hinweise (z. B. fehlende Signatur) – meist harmlos.</summary>
+    LikelyHarmless,
+    /// <summary>Kurz pruefen: Nur Sie wissen, ob das gewollt ist.</summary>
+    Check,
+    /// <summary>Harte Beweise fuer Schadsoftware oder Angriff – handeln.</summary>
+    Act,
+}
+
 public static class SeverityText
 {
     public static string German(this Severity s) => s switch

@@ -30,10 +30,10 @@ public sealed partial class FindingsViewModel : ObservableObject
     [ObservableProperty] private FindingItemViewModel? _selectedItem;
     [ObservableProperty] private string _search = "";
     [ObservableProperty] private string _selectedCategory = "Alle Kategorien";
-    [ObservableProperty] private bool _showCritical = true;
-    [ObservableProperty] private bool _showHigh = true;
-    [ObservableProperty] private bool _showMedium = true;
-    [ObservableProperty] private bool _showLow = true;
+    // Filter nach Laien-Ampel – der technische Schweregrad bleibt in den Details sichtbar.
+    [ObservableProperty] private bool _showAct = true;
+    [ObservableProperty] private bool _showCheck = true;
+    [ObservableProperty] private bool _showHarmless = true;
     [ObservableProperty] private bool _showInfo;
     [ObservableProperty] private bool _showIgnored;
     [ObservableProperty] private int _visibleCount;
@@ -41,10 +41,9 @@ public sealed partial class FindingsViewModel : ObservableObject
 
     partial void OnSearchChanged(string value) => Refresh();
     partial void OnSelectedCategoryChanged(string value) => Refresh();
-    partial void OnShowCriticalChanged(bool value) => Refresh();
-    partial void OnShowHighChanged(bool value) => Refresh();
-    partial void OnShowMediumChanged(bool value) => Refresh();
-    partial void OnShowLowChanged(bool value) => Refresh();
+    partial void OnShowActChanged(bool value) => Refresh();
+    partial void OnShowCheckChanged(bool value) => Refresh();
+    partial void OnShowHarmlessChanged(bool value) => Refresh();
     partial void OnShowInfoChanged(bool value) => Refresh();
     partial void OnShowIgnoredChanged(bool value) => Refresh();
 
@@ -66,12 +65,11 @@ public sealed partial class FindingsViewModel : ObservableObject
     {
         if (o is not FindingItemViewModel i) return false;
         if (i.IsIgnored && !ShowIgnored) return false;
-        bool sev = i.Severity switch
+        bool sev = i.Verdict switch
         {
-            Severity.Critical => ShowCritical,
-            Severity.High => ShowHigh,
-            Severity.Medium => ShowMedium,
-            Severity.Low => ShowLow,
+            Verdict.Act => ShowAct,
+            Verdict.Check => ShowCheck,
+            Verdict.LikelyHarmless => ShowHarmless,
             _ => ShowInfo,
         };
         if (!sev) return false;

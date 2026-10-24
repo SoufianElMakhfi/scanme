@@ -124,6 +124,15 @@ public sealed class DriverScanner : IScanner
         if (!info.Exists)
         {
             if (!loaded) return; // verwaiste Treiberdienste sind haeufig und harmlos
+            // "dump_*.sys" sind Kopien der Speichertreiber, die Windows fuer Absturzberichte nur im Arbeitsspeicher anlegt –
+            // eine Datei dieses Namens gibt es nie. Bewertet wird stattdessen der Originaltreiber.
+            if (name.StartsWith("dump_", StringComparison.OrdinalIgnoreCase))
+            {
+                string realDriver = Path.Combine(Path.GetDirectoryName(path)!, name[5..]);
+                if (File.Exists(realDriver) && !ctx.Trust.Get(realDriver).IsMicrosoftSigned)
+                    AssessDriver(ctx, realDriver, loaded: true, service);
+                return;
+            }
             f.AddIndicator("DRV_NO_FILE", "Geladener Treiber, dessen Datei nicht mehr existiert", 40);
         }
         else if (info.Signature == SignatureState.NotSigned)

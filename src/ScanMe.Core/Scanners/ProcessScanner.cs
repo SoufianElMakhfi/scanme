@@ -305,8 +305,12 @@ public sealed class ProcessScanner : IScanner
             {
                 var info = ctx.Trust.Get(p.ImagePath);
                 ExecutableAssessor.AddDetails(f, info);
+                f.FilePath = p.ImagePath;
                 if (info.IsWindowsComponent) f.IsProtected = true;
-                if (cpu && info.Signature != Trust.SignatureState.Valid)
+                // Spiele duerfen viel CPU brauchen – nur unbekannte, unsignierte Programme ausserhalb von Spielebibliotheken sind miner-verdaechtig.
+                if (ExecutableAssessor.IsGameLibrary(p.ImagePath))
+                    f.AddIndicator("GAME_LIBRARY", "Spiel aus einer Spielebibliothek – hohe Last ist beim Spielen normal", -15);
+                else if (cpu && info.Signature != Trust.SignatureState.Valid)
                     f.AddIndicator("MINER_SUSPECT", "Unsignierter Prozess mit hoher CPU-Last (möglicher Krypto-Miner)", 25);
             }
             ctx.Add(f);

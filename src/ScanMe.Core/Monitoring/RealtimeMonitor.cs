@@ -61,6 +61,7 @@ public sealed class RealtimeMonitor : IDisposable
     private void Raise(MonitorKind kind, Finding f)
     {
         RiskScorer.Finalize(f);
+        PlainLanguage.Apply(f);
         try { Detected?.Invoke(new MonitorEvent(DateTime.Now, kind, f)); } catch { }
     }
 

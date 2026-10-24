@@ -82,9 +82,11 @@ public static class SystemProcesses
         foreach (var known in Profiles.Keys)
         {
             if (Math.Abs(known.Length - n.Length) > 2) continue;
-            int dist = TextUtil.Levenshtein(known, n);
-            if (dist is >= 1 and <= 2 && known.Length >= 9) return Profiles[known].Name;
+            // Ein Tippfehler/Vertauscher reicht bei normal langen Namen (scvhost, lsasss);
+            // zwei Abweichungen nur bei sehr langen Namen – sonst trifft es Programme wie "airhost.exe" (Zoom) vs. "sihost.exe".
+            int dist = TextUtil.OsaDistance(known, n);
             if (dist == 1 && known.Length >= 7) return Profiles[known].Name;
+            if (dist == 2 && known.Length >= 13) return Profiles[known].Name;
         }
         // Homoglyphen: 0 statt o, 1 statt l, rn statt m
         string folded = n.Replace('0', 'o').Replace('1', 'l').Replace("rn", "m");

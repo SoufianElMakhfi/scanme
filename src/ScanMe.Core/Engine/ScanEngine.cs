@@ -61,9 +61,14 @@ public sealed class ScanEngine
         foreach (var f in Deduplicate(ctx.Findings))
         {
             RiskScorer.Finalize(f);
+            PlainLanguage.Apply(f);
             report.Findings.Add(f);
         }
-        report.Findings.Sort((a, b) => b.Score != a.Score ? b.Score.CompareTo(a.Score) : string.Compare(a.Title, b.Title, StringComparison.CurrentCulture));
+        // Zuerst nach Laien-Ampel (Handeln vor Pruefen vor harmlos), dann nach technischem Score.
+        report.Findings.Sort((a, b) =>
+            a.Verdict != b.Verdict ? b.Verdict.CompareTo(a.Verdict)
+            : b.Score != a.Score ? b.Score.CompareTo(a.Score)
+            : string.Compare(a.Title, b.Title, StringComparison.CurrentCulture));
         report.FinishedAt = DateTime.Now;
         progress?.Report(new ScanProgress("", active.Count, active.Count, "Scan abgeschlossen"));
         return report;

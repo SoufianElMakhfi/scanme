@@ -56,7 +56,7 @@
             </Border>
 
             <!-- Zaehler -->
-            <UniformGrid Columns="5" Margin="0,16,0,0">
+            <UniformGrid Columns="4" Margin="0,16,0,0">
                 <UniformGrid.Resources>
                     <Style TargetType="Border" BasedOn="{StaticResource Card}">
                         <Setter Property="Margin" Value="0,0,12,0" />
@@ -65,32 +65,30 @@
                 </UniformGrid.Resources>
                 <Border>
                     <StackPanel>
-                        <TextBlock Text="KRITISCH" Style="{StaticResource Label}" />
-                        <TextBlock Text="{Binding Critical}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource CriticalBrush}" />
+                        <TextBlock Text="HANDELN" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding ActCount}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource CriticalBrush}" />
+                        <TextBlock Text="Deutliche Hinweise auf Schadsoftware" Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
                 <Border>
                     <StackPanel>
-                        <TextBlock Text="HOCH" Style="{StaticResource Label}" />
-                        <TextBlock Text="{Binding High}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource HighBrush}" />
+                        <TextBlock Text="KURZ PRÜFEN" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding CheckCount}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource MediumBrush}" />
+                        <TextBlock Text="Harmlos, wenn Sie es selbst veranlasst haben" Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
                 <Border>
                     <StackPanel>
-                        <TextBlock Text="MITTEL" Style="{StaticResource Label}" />
-                        <TextBlock Text="{Binding Medium}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource MediumBrush}" />
-                    </StackPanel>
-                </Border>
-                <Border>
-                    <StackPanel>
-                        <TextBlock Text="NIEDRIG" Style="{StaticResource Label}" />
-                        <TextBlock Text="{Binding Low}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource LowBrush}" />
+                        <TextBlock Text="WAHRSCHEINLICH HARMLOS" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding HarmlessCount}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource GoodBrush}" />
+                        <TextBlock Text="z. B. nur unsigniert – meist normal" Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
                 <Border Margin="0">
                     <StackPanel>
-                        <TextBlock Text="INFO / OPTIMIERUNG" Style="{StaticResource Label}" />
-                        <TextBlock Text="{Binding Info}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource InfoBrush}" />
+                        <TextBlock Text="NUR INFO" Style="{StaticResource Label}" />
+                        <TextBlock Text="{Binding InfoCount}" FontSize="30" FontWeight="Bold" Foreground="{StaticResource InfoBrush}" />
+                        <TextBlock Text="Übersicht, nichts zu tun" Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
             </UniformGrid>
@@ -103,8 +101,8 @@
                 </Grid.ColumnDefinitions>
                 <Border Style="{StaticResource Card}" Margin="0,0,12,0">
                     <StackPanel>
-                        <TextBlock Text="Wichtigste Funde" Style="{StaticResource H2}" Margin="0,0,0,12" />
-                        <TextBlock Text="Keine Funde mit mittlerer oder höherer Priorität. 👍" Style="{StaticResource Muted}"
+                        <TextBlock Text="Darum sollten Sie sich kümmern" Style="{StaticResource H2}" Margin="0,0,0,12" />
+                        <TextBlock Text="Nichts zu tun – keine Funde zum Handeln oder Prüfen. 👍" Style="{StaticResource Muted}"
                                    Visibility="{Binding TopFindings.Count, Converter={StaticResource InvVis}}" />
                         <ItemsControl ItemsSource="{Binding TopFindings}">
                             <ItemsControl.ItemTemplate>
@@ -121,10 +119,10 @@
                                             </ControlTemplate>
                                         </Button.Template>
                                         <DockPanel>
-                                            <Border DockPanel.Dock="Left" Width="4" CornerRadius="2" Background="{Binding Severity, Converter={StaticResource SevBrush}}" Margin="0,0,12,0" />
+                                            <Border DockPanel.Dock="Left" Width="4" CornerRadius="2" Background="{Binding Verdict, Converter={StaticResource VerdictBrush}}" Margin="0,0,12,0" />
                                             <Border DockPanel.Dock="Right" CornerRadius="5" Padding="8,2" VerticalAlignment="Center"
-                                                    Background="{Binding Severity, Converter={StaticResource SevBrush}}">
-                                                <TextBlock Text="{Binding Severity, Converter={StaticResource SevText}}" FontSize="11" FontWeight="Bold" Foreground="#111" />
+                                                    Background="{Binding Verdict, Converter={StaticResource VerdictBrush}}">
+                                                <TextBlock Text="{Binding Verdict, Converter={StaticResource VerdictText}}" FontSize="11" FontWeight="Bold" Foreground="#111" />
                                             </Border>
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />

@@ -31,6 +31,7 @@ public class DetectionTests
     [InlineData("svch0st.exe", "svchost.exe")]
     [InlineData("lsasss.exe", "lsass.exe")]
     [InlineData("expl0rer.exe", "explorer.exe")]
+    [InlineData("Runtime Broker.exe", "RuntimeBroker.exe")]
     public void LookalikeNames_AreDetected(string name, string original) =>
         Assert.Equal(original, SystemProcesses.FindLookalike(name), StringComparer.OrdinalIgnoreCase);
 
@@ -38,6 +39,9 @@ public class DetectionTests
     [InlineData("svchost.exe")]
     [InlineData("chrome.exe")]
     [InlineData("notepad.exe")]
+    [InlineData("airhost.exe")]   // Zoom – frueherer Fehlalarm (aehnlich zu sihost.exe)
+    [InlineData("CptHost.exe")]   // Zoom
+    [InlineData("conhost.exe")]
     public void GenuineNames_AreNotLookalikes(string name) =>
         Assert.Null(SystemProcesses.FindLookalike(name));
 

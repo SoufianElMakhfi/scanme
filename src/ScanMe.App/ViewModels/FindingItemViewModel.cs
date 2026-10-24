@@ -29,12 +29,38 @@ public sealed partial class FindingItemViewModel : ObservableObject
     public IReadOnlyList<ActionItemViewModel> Actions { get; }
     public string Subtitle => Finding.FilePath ?? Finding.Location ?? "";
 
+    // --- Laienansicht ---
+    public Verdict Verdict => Finding.Verdict;
+    public string PlainSummary => Finding.PlainSummary;
+    public IReadOnlyList<string> Questions => Finding.Questions;
+    public bool HasQuestions => Finding.Questions.Count > 0;
+    public string IfUnknown => Finding.IfUnknown;
+
+    /// <summary>Bei "Handeln" sofort die Schritte zeigen, sonst erst nach "Kenne ich nicht".</summary>
+    public bool ShowSteps => Verdict == Verdict.Act || (DontKnow && !string.IsNullOrEmpty(IfUnknown));
+
+    /// <summary>Die wichtigsten (veraendernden) Aktionen fuer den Schritt-Kasten; Infos wie VirusTotal bleiben bei den Details.</summary>
+    public IReadOnlyList<ActionItemViewModel> PrimaryActions => Actions.Where(a => a.IsDestructive).ToList();
+
     [ObservableProperty] private bool _isIgnored;
     [ObservableProperty] private string? _actionMessage;
     [ObservableProperty] private bool _actionSucceeded;
     [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowSteps))] private bool _dontKnow;
 
     partial void OnIsIgnoredChanged(bool value) => IgnoreList.Set(Finding, value);
+
+    [RelayCommand]
+    private void KnowIt()
+    {
+        IsIgnored = true;
+        DontKnow = false;
+        ActionSucceeded = true;
+        ActionMessage = "✔ Als bekannt markiert – dieser Fund wird künftig ausgeblendet (unter „Ignorierte“ wieder sichtbar).";
+    }
+
+    [RelayCommand]
+    private void DoNotKnow() => DontKnow = true;
 
     [RelayCommand]
     private void CopyDetails()

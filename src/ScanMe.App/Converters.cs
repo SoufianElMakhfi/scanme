@@ -24,6 +24,49 @@ public sealed class SeverityToBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
+/// <summary>Laien-Ampel -> Farbe / Text.</summary>
+public sealed class VerdictToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        Application.Current.FindResource(value switch
+        {
+            Verdict.Act => "CriticalBrush",
+            Verdict.Check => "MediumBrush",
+            Verdict.LikelyHarmless => "GoodBrush",
+            _ => "InfoBrush",
+        });
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
+public sealed class VerdictTextConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value switch
+    {
+        Verdict.Act => "HANDELN",
+        Verdict.Check => "KURZ PRÜFEN",
+        Verdict.LikelyHarmless => "WAHRSCHEINLICH HARMLOS",
+        _ => "NUR INFO",
+    };
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
+/// <summary>Dezente Hintergrundfarbe fuer den Einschaetzungs-Kasten.</summary>
+public sealed class VerdictToBackgroundConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        new SolidColorBrush(value switch
+        {
+            Verdict.Act => Color.FromRgb(0x3A, 0x1D, 0x22),
+            Verdict.Check => Color.FromRgb(0x3A, 0x31, 0x18),
+            Verdict.LikelyHarmless => Color.FromRgb(0x17, 0x33, 0x26),
+            _ => Color.FromRgb(0x1C, 0x21, 0x2C),
+        });
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 public sealed class SeverityTextConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>

@@ -91,7 +91,7 @@ public sealed class NetworkScanner : IScanner
 
             if (external.Count > 0)
             {
-                if (info != null && info.Signature != SignatureState.Valid)
+                if (info != null && info.Signature != SignatureState.Valid && !ExecutableAssessor.IsGameLibrary(info.Path))
                     f.AddIndicator("NET_UNSIGNED_EXT", $"Unsigniertes Programm mit {external.Count} Verbindung(en) ins Internet", 15);
                 if (lolbin)
                     f.AddIndicator("NET_LOLBIN", $"{name} hat eine aktive Internetverbindung – typisch für Downloader/Reverse Shells", 40);
