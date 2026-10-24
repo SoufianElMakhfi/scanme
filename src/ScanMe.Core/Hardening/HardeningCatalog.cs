@@ -125,7 +125,7 @@ public static class HardeningCatalog
         // --- Defender-Regeln zur Angriffsflaechenreduzierung (ASR) ---
         Asr("56a863a9-875e-4185-98a7-b882c64b5ce5", "Verwundbare Treiber blockieren",
             "Verhindert, dass bekannte, ausnutzbare Treiber geladen werden.",
-            "Krypto-Miner und Ransomware, die über solche Treiber Virenschutz abschalten – genau so hat der Miner auf diesem PC WinRing0 genutzt.",
+            "Krypto-Miner und Ransomware, die über solche Treiber Virenschutz abschalten oder volle Kontrolle über den PC erlangen (z. B. den von Minern missbrauchten Treiber WinRing0).",
             "Alte Übertaktungs-, RGB- oder Lüftertools mit verwundbarem Treiber starten dann nicht mehr.", HardeningMode.On),
         Asr("9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2", "Passwortdiebstahl aus dem Anmeldeprozess blockieren",
             "Kein Programm darf die gespeicherten Windows-Anmeldedaten (LSASS) auslesen.",

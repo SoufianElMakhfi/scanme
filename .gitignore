@@ -12,3 +12,6 @@ TestResults/
 # Private Signaturschluessel gehoeren NIE ins Repository
 *.pem
 *.key
+
+# Temporaere WPF-Build-Dateien (enthalten lokale Pfade)
+*_wpftmp.csproj
