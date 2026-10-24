@@ -85,7 +85,8 @@ public sealed partial class HardeningViewModel : ObservableObject
     {
         if (!IsElevated) { Message = "✖ Dafür muss ScanMe als Administrator laufen."; return; }
         if (mode == HardeningMode.On && vm.DevNote != null &&
-            MessageBox.Show($"{vm.Title} aktivieren?\n\nHinweis: {vm.DevNote}\n\nTipp: Mit „Testmodus“ sehen Sie erst, was blockiert würde, ohne dass etwas blockiert wird.",
+            MessageBox.Show($"{vm.Title} aktivieren?\n\nHinweis: {vm.DevNote}" +
+                            (vm.SupportsAudit ? "\n\nTipp: Mit „Testmodus“ sehen Sie erst, was blockiert würde, ohne dass etwas blockiert wird." : ""),
                 "ScanMe – Schutz aktivieren", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
             return;
 
@@ -95,6 +96,9 @@ public sealed partial class HardeningViewModel : ObservableObject
         Message = (result.Success ? "✔ " : "✖ ") + result.Message;
         UpdateSummary();
         IsBusy = false;
+        // Fehler nicht nur oben auf der Seite melden – dort sieht man sie beim Scrollen nicht.
+        if (!result.Success)
+            MessageBox.Show(result.Message, "ScanMe – Schutz konnte nicht geändert werden", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     [RelayCommand]

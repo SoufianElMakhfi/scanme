@@ -69,7 +69,7 @@ public sealed class FileTrustService
             _ => SignatureState.Invalid,
         };
 
-        string? signer = null, org = null, issuer = null;
+        string? signer = null, org = null, issuer = null, issuerOrg = null;
         if (state != SignatureState.NotSigned)
         {
             try
@@ -81,6 +81,7 @@ public sealed class FileTrustService
                 signer = cert.GetNameInfo(X509NameType.SimpleName, false);
                 issuer = cert.GetNameInfo(X509NameType.SimpleName, true);
                 org = ExtractRdn(cert.Subject, "O");
+                issuerOrg = ExtractRdn(cert.Issuer, "O");
             }
             catch { }
         }
@@ -99,7 +100,9 @@ public sealed class FileTrustService
             && signer != null
             && signer.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase)
             && (org?.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) ?? false)
-            && (issuer?.Contains("Microsoft", StringComparison.OrdinalIgnoreCase) ?? false);
+            // Neuere Microsoft-Zertifizierungsstellen heissen z. B. "Windows Production PCA 2023" – massgeblich ist die Organisation.
+            && ((issuer?.Contains("Microsoft", StringComparison.OrdinalIgnoreCase) ?? false)
+                || (issuerOrg?.Equals("Microsoft Corporation", StringComparison.OrdinalIgnoreCase) ?? false));
 
         bool isWindowsComponent = isMicrosoft && PathUtil.IsUnderWindowsDirectory(path);
 
