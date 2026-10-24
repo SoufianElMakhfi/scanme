@@ -10,7 +10,7 @@
     <SelfContained>false</SelfContained>
     <Version>1.0.3</Version>
     <Company>ScanMe</Company>
-    <Product>ScanMe Blue Team</Product>
+    <Product>ScanMe</Product>
     <Copyright>Copyright (c) 2026 Soufian El Makhfi und Mitwirkende - GPL-3.0</Copyright>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>

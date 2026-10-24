@@ -148,6 +148,25 @@ allen Windows-Schnittstellen verbergen. Bei kritischen Funden zusätzlich einen
 **Microsoft Defender Offline-Scan** ausführen (Windows-Sicherheit → Viren- & Bedrohungsschutz → Scanoptionen).
 Berichte enthalten Pfade und Benutzernamen – nur an vertrauenswürdige Personen weitergeben.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+> **Status:** Die Aufnahme ins Programm der SignPath Foundation ist beantragt. Bis zur Freigabe sind Releases
+> noch unsigniert – prüfe sie über `SHA256SUMS.txt`.
+
+- Signiert werden ausschließlich `ScanMe.exe` und `scanme-cli.exe`, die GitHub Actions aus diesem Repository baut
+  ([Workflow](.github/workflows/build.yml)). Lokal gebaute Dateien werden nie signiert.
+- Jede Signieranfrage wird einzeln von einem Approver freigegeben, nur für Releases (Git-Tags `v*`).
+- Rollen:
+  - Committer und Reviewer: [Soufian El Makhfi](https://github.com/SoufianElMakhfi)
+  - Approver: [Soufian El Makhfi](https://github.com/SoufianElMakhfi)
+- Alle Beteiligten nutzen Zwei-Faktor-Authentifizierung für GitHub und SignPath.
+- Datenschutz: ScanMe überträgt keine Daten von deinem PC. Welche Netzwerkzugriffe es gibt und wie man sie
+  abschaltet, steht unter [Datenschutz](#datenschutz).
+
+Eine signierte Datei erkennst du unter *Eigenschaften → Digitale Signaturen*: Signaturgeber ist „SignPath Foundation“.
+
 ## Mitwirken
 
 Fehlalarme, übersehene Malware, neue Regeln und Code-Beiträge sind willkommen – siehe

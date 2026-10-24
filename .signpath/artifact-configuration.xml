@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath-Artefaktkonfiguration fuer ScanMe (in SignPath unter Projekt "scanme" → Artifact Configurations → "default" einfuegen).
+  Das Artefakt ist das ZIP, das der Workflow aus publish/ hochlaedt:
+    win-x64/ScanMe.exe, win-x64/scanme-cli.exe, win-arm64/ScanMe.exe, win-arm64/scanme-cli.exe
+  Produktname muss "ScanMe" sein (Vorgabe der SignPath Foundation: Produktname = Projektname).
+  Die Version ist bei allen Dateien gleich, da sie zentral aus Directory.Build.props kommt.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <directory path="win-x64">
+      <pe-file path="ScanMe.exe" product-name="ScanMe">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="scanme-cli.exe" product-name="ScanMe">
+        <authenticode-sign />
+      </pe-file>
+    </directory>
+    <directory path="win-arm64">
+      <pe-file path="ScanMe.exe" product-name="ScanMe">
+        <authenticode-sign />
+      </pe-file>
+      <pe-file path="scanme-cli.exe" product-name="ScanMe">
+        <authenticode-sign />
+      </pe-file>
+    </directory>
+  </zip-file>
+</artifact-configuration>
