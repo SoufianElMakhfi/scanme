@@ -31,6 +31,8 @@ foreach ($rid in $rids) {
     }
     # Unvollstaendig geschriebene Bundles erkennen (eigenstaendige EXEs sind deutlich groesser als 20 MB)
     Get-ChildItem $out -Filter *.exe | Where-Object { $_.Length -lt 20MB } | ForEach-Object { throw "Unvollstaendige Datei: $($_.Name) ($([math]::Round($_.Length / 1MB, 1)) MB)" }
+    # Fehlalarme vor der Veroeffentlichung erkennen (siehe tools\defender-scan.ps1)
+    & (Join-Path $root "tools\defender-scan.ps1") -Path $out
     Get-ChildItem $out -Filter *.exe | ForEach-Object {
         $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
         "{0,-18} {1,8:N1} MB  SHA256 {2}" -f $_.Name, ($_.Length / 1MB), $hash

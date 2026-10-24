@@ -38,6 +38,11 @@ jobs:
             }
           }
 
+      # Fehlalarme verhindern: Meldet Defender die fertigen Dateien, wird nichts signiert oder veroeffentlicht.
+      - name: Defender-Pruefung
+        shell: pwsh
+        run: ./tools/defender-scan.ps1 -Path publish/win-x64, publish/win-arm64 -UpdateSignatures
+
       # --- Signierung (SignPath Foundation) ---
       - name: Upload unsigned EXEs
         id: upload-unsigned
