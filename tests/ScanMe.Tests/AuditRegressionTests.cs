@@ -51,7 +51,7 @@ public class AuditRegressionTests
     // --- E2: Richtung beachten ---
 
     [Theory]
-    [InlineData(@"Remove-MpPreference -ExclusionPath 'C:\Users\Anwender\AppData\Local\Temp'")]
+    [InlineData(@"Remove-MpPreference -ExclusionPath 'C:\Users\Test\AppData\Local\Temp'")]
     [InlineData("Set-MpPreference -DisableRealtimeMonitoring $false")]
     public void E2_ImprovingProtection_IsNotWeakening(string script)
     {
@@ -91,7 +91,7 @@ public class AuditRegressionTests
     }
 
     [Theory]
-    [InlineData(@"C:\Users\Test\AppData\Roaming\com.swiftsoft\ExLoader\games")]
+    [InlineData(@"C:\Users\Test\AppData\Roaming\SomeVendor\ExLoader\games")]
     [InlineData(@"C:\Users\Test\Desktop\GHax")]
     [InlineData(@"D:\Games\Some Cheat Loader")]
     public void E3_CheatLoaderExclusions_AreFlagged(string path) =>
