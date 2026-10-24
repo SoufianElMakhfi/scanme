@@ -99,6 +99,8 @@ public class ProvenanceTests
     {
         var doc = XDocument.Parse(SysmonConfig.Build());
         Assert.Equal("Sysmon", doc.Root!.Name.LocalName);
+        // FileDeleteDetected gibt es erst ab Schema 4.82 – mit aelterer Angabe stuerzt Sysmon bei der Installation ab.
+        Assert.True(Version.Parse((string)doc.Root.Attribute("schemaversion")!) >= new Version(4, 82));
         Assert.NotEmpty(doc.Descendants("ProcessCreate"));
         // Datenschutz: Zwischenablage wird nicht aufgezeichnet
         Assert.Contains(doc.Descendants("ClipboardChange"), e => (string?)e.Attribute("onmatch") == "include" && !e.HasElements);

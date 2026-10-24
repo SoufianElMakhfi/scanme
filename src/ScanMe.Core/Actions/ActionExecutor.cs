@@ -264,6 +264,9 @@ public static class ActionExecutor
         using var p = Process.Start(psi)!;
         string output = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
         p.WaitForExit(60_000);
+        // Manche Werkzeuge (z. B. Sysmon) schreiben UTF-16 – Nullzeichen wuerden Meldungsfenster abschneiden.
+        output = output.Replace("\0", "");
+        if (p.ExitCode != 0 && string.IsNullOrWhiteSpace(output)) output = $"Exit-Code 0x{p.ExitCode:X8}";
         return (p.ExitCode, output);
     }
 }

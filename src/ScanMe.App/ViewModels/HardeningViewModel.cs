@@ -89,7 +89,16 @@ public sealed partial class HardeningViewModel : ObservableObject
     public async Task ApplyAsync(HardeningItemViewModel vm, HardeningMode mode)
     {
         if (!IsElevated) { Message = "✖ Dafür muss ScanMe als Administrator laufen."; return; }
-        if (mode == HardeningMode.On && vm.DevNote != null &&
+        // Diese Regel sperrt jedes noch unbekannte Programm – auch ScanMe selbst nach einem Update oder eigenem Build.
+        if (mode == HardeningMode.On && vm.Item.Id == "asr:01443614-cd74-433a-b99e-2ecdc07bfc25" &&
+            MessageBox.Show("Achtung: Diese Regel blockiert JEDES Programm, das Microsoft noch nicht von vielen PCs kennt.\n\n" +
+                            "• Auch ScanMe selbst startet nach einem Update eventuell nicht mehr.\n" +
+                            "• Selbst gebaute Programme, neue Tools und Nischen-Software werden gesperrt.\n" +
+                            "• Rückgängig machen geht dann nur noch über eine Administrator-PowerShell.\n\n" +
+                            "Wirklich aktivieren? Für die meisten ist „Testmodus“ die bessere Wahl.",
+                "ScanMe – Strenge Regel", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
+            return;
+        if (mode == HardeningMode.On && vm.DevNote != null && vm.Item.Id != "asr:01443614-cd74-433a-b99e-2ecdc07bfc25" &&
             MessageBox.Show($"{vm.Title} aktivieren?\n\nHinweis: {vm.DevNote}" +
                             (vm.SupportsAudit ? "\n\nTipp: Mit „Testmodus“ sehen Sie erst, was blockiert würde, ohne dass etwas blockiert wird." : ""),
                 "ScanMe – Schutz aktivieren", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)

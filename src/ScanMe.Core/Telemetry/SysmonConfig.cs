@@ -30,7 +30,7 @@ public static class SysmonConfig
         string E(string s) => SecurityElement.Escape(s)!;
         void Line(string s) => x.AppendLine(s);
 
-        Line("<Sysmon schemaversion=\"4.50\">");
+        Line("<Sysmon schemaversion=\"4.90\">"); // ab 4.82 noetig fuer FileDeleteDetected – aeltere Angabe laesst Sysmon abstuerzen
         Line($"  <!-- {Marker} -->");
         Line("  <HashAlgorithms>SHA256</HashAlgorithms>");
         Line("  <CheckRevocation>False</CheckRevocation>");
