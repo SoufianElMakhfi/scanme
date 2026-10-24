@@ -62,8 +62,17 @@ public static class SysmonService
         if (!trust.IsMicrosoftSigned)
             return $"Abgebrochen: Die heruntergeladene Datei ist nicht gültig von Microsoft signiert ({trust.SignatureStatusText}).";
 
+        // Reste eines abgebrochenen Versuchs (Programm/Ereignisquelle ohne Dienst) lassen die Neuinstallation
+        // mit "Event manifest installation failed" scheitern – vorher vollstaendig entfernen.
+        if (File.Exists(Path.Combine(PathUtil.WindowsDir, ExeName)))
+            ActionExecutor.RunTool(exe, "-u force");
+
         var (code, text) = ActionExecutor.RunTool(exe, $"-accepteula -i \"{ConfigPath}\"");
-        if (code != 0) return "Sysmon-Installation fehlgeschlagen: " + text.Trim();
+        if (code != 0)
+        {
+            ActionExecutor.RunTool(exe, "-u force"); // keinen halb installierten Zustand zuruecklassen
+            return "Sysmon-Installation fehlgeschlagen: " + text.Trim();
+        }
         File.WriteAllText(InstalledMarker, ConfigHash());
 
         // Grosses Protokoll: Herkunft bleibt wochenlang nachvollziehbar.
