@@ -8,6 +8,9 @@ $root = $PSScriptRoot
 $rids = @("win-x64")
 if ($Arm64) { $rids += "win-arm64" }
 
+# YARA-X und Regelpaket in den festen Versionen (laedt nur bei Aenderungen neu)
+& (Join-Path $root "tools\update-yara.ps1")
+
 dotnet test "$root\tests\ScanMe.Tests" -c $Configuration
 if ($LASTEXITCODE -ne 0) { throw "Tests fehlgeschlagen - Veroeffentlichung abgebrochen." }
 

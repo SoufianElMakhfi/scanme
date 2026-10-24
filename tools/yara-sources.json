@@ -1,0 +1,37 @@
+{
+  "_comment": "Feste Versionen fuer YARA. Aendern nur bewusst: neue Version eintragen, SHA256 pruefen, tools/update-yara.ps1 ausfuehren, testen.",
+  "yaraX": {
+    "version": "v1.22.0",
+    "url": "https://github.com/VirusTotal/yara-x/releases/download/v1.22.0/yara-x-capi-v1.22.0-x86_64-pc-windows-msvc.zip",
+    "sha256": "40317f65781e3a17bffe31f9837143a51c1c28ce5061eac2b90695fbb30e1664",
+    "license": "BSD-3-Clause",
+    "licenseUrl": "https://raw.githubusercontent.com/VirusTotal/yara-x/v1.22.0/LICENSE"
+  },
+  "yaraForge": {
+    "release": "20261018",
+    "url": "https://github.com/YARAHQ/yara-forge/releases/download/20261018/yara-forge-rules-core.zip",
+    "sha256": "d5b5f0006a0c58684459c3967b6aaae94f1e128597ed23ea5d4e8f16965a74ba",
+    "entry": "packages/core/yara-rules-core.yar"
+  },
+  "_sourcesComment": "Nur Regeln aus diesen Repositories werden uebernommen (Lizenz geprueft). Quellen ohne Lizenz fehlen bewusst.",
+  "sources": {
+    "malpedia/signator-rules": "CC BY-SA 4.0",
+    "Neo23x0/signature-base": "Detection Rule License 1.1",
+    "SEKOIA-IO/Community": "Detection Rule License 1.1",
+    "ditekshen/detection": "BSD-2-Clause",
+    "mandiant/red_team_tool_countermeasures": "BSD-2-Clause",
+    "kevoreilly/CAPEv2": "GPL-3.0",
+    "volexity/threat-intel": "BSD-2-Clause",
+    "chronicle/GCTI": "Apache-2.0",
+    "eset/malware-ioc": "BSD-2-Clause",
+    "advanced-threat-research/Yara-Rules": "Apache-2.0",
+    "magicsword-io/LOLDrivers": "Apache-2.0",
+    "WithSecureLabs/iocs": "BSD-2-Clause",
+    "elceef/yara-rulz": "MIT",
+    "craiu/yararules": "GPL-3.0",
+    "cod3nym/detection-rules": "Detection Rule License 1.1",
+    "dr4k0nia/yara-rules": "Detection Rule License 1.1",
+    "synacktiv/synacktiv-rules": "Detection Rule License 1.1",
+    "deadbits/yara-rules": "Unlicense"
+  }
+}

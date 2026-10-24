@@ -15,3 +15,6 @@ TestResults/
 
 # Temporaere WPF-Build-Dateien (enthalten lokale Pfade)
 *_wpftmp.csproj
+
+# Von tools/update-yara.ps1 erzeugt (YARA-X-DLL, verpacktes Regelpaket)
+deps/

@@ -24,6 +24,10 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: YARA-X und Regeln (feste Versionen, Pruefsummen)
+        shell: pwsh
+        run: ./tools/update-yara.ps1
+
       - name: Test
         run: dotnet test tests/ScanMe.Tests -c Release
 

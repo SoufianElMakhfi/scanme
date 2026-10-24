@@ -14,6 +14,12 @@
           CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
 
+  <!-- YARA-X und verpacktes Regelpaket aus tools/update-yara.ps1 (nicht im Repository). Die DLL gibt es nur fuer x64. -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' And Exists('..\..\deps\yara\yara_x_capi.dll')">
+    <None Include="..\..\deps\yara\yara_x_capi.dll;..\..\deps\yara\rules.bin;..\..\deps\yara\NOTICE.txt" Link="Data\yara\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.1" />
     <PackageReference Include="System.Management" Version="8.0.0" />
