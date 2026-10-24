@@ -60,6 +60,21 @@ public sealed partial class DashboardViewModel : ObservableObject
     [RelayCommand]
     private void Open(FindingItemViewModel item) => _main.ShowFinding(item);
 
+    [RelayCommand]
+    private async Task StartOfflineScan()
+    {
+        if (!_main.IsElevated) { BaselineMessage = "✖ Die Offline-Prüfung braucht Adminrechte."; return; }
+        if (System.Windows.MessageBox.Show(
+                "Microsoft Defender Offline-Prüfung starten?\n\n" +
+                "• Der PC startet IN KÜRZE NEU – bitte vorher alles speichern und Programme schließen.\n" +
+                "• Defender prüft den PC, bevor Windows lädt. Dort können sich auch Rootkits nicht verstecken.\n" +
+                "• Dauer ca. 15 Minuten, danach startet Windows normal. Ergebnisse stehen in Windows-Sicherheit → Schutzverlauf und beim nächsten ScanMe-Scan.",
+                "ScanMe – Offline-Prüfung", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes)
+            return;
+        var result = await Task.Run(Core.Actions.OfflineScan.Start);
+        BaselineMessage = (result.Success ? "✔ " : "✖ ") + result.Message;
+    }
+
     // ------------------------------------------------------------------
     // Sauberer Zustand (Baseline)
     // ------------------------------------------------------------------
