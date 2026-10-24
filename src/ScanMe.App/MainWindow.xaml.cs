@@ -20,10 +20,42 @@ public partial class MainWindow : Window
         Loaded += OnLoaded;
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    /// <summary>Gesetzt beim Rendern fuer Screenshots: keine Dialoge, keine Netzwerkzugriffe.</summary>
+    public bool Headless { get; set; }
+
+    private const string DisclaimerVersion = "1";
+
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (Headless) return;
+        if (!ConfirmDisclaimer())
+        {
+            ExitApplication();
+            return;
+        }
         _tray = new TrayIcon(this, _vm);
         if (_vm.Settings.StartMonitorOnLaunch && !_vm.Monitor.IsRunning) _vm.Monitor.Toggle();
+        await _vm.CheckOnlineAsync();
+    }
+
+    private bool ConfirmDisclaimer()
+    {
+        if (_vm.Settings.DisclaimerAccepted == DisclaimerVersion) return true;
+        var result = MessageBox.Show(
+            "ScanMe ist kostenlose Open-Source-Software (GPL-3.0) und wird OHNE JEDE GEWÄHRLEISTUNG bereitgestellt.\n\n" +
+            "• ScanMe arbeitet mit Heuristiken: Es kann Schadsoftware übersehen und harmlose Programme als verdächtig melden.\n" +
+            "• ScanMe ersetzt keinen Virenscanner und keine professionelle IT-Forensik.\n" +
+            "• Sie entscheiden selbst über jede Aktion (Beenden, Quarantäne, Deaktivieren). Prüfen Sie Funde, bevor Sie handeln, " +
+            "und sichern Sie wichtige Daten.\n" +
+            "• Die Nutzung erfolgt auf eigene Verantwortung. Die Autoren haften nicht für Schäden, soweit gesetzlich zulässig.\n\n" +
+            "Online-Funktionen (abschaltbar in den Einstellungen): ScanMe fragt bei GitHub nach Updates und signierten Erkennungsregeln. " +
+            "Dabei werden keine Daten von Ihrem PC übertragen.\n\n" +
+            "Akzeptieren Sie diese Bedingungen?",
+            "ScanMe – Nutzungshinweis", MessageBoxButton.YesNo, MessageBoxImage.Information);
+        if (result != MessageBoxResult.Yes) return false;
+        _vm.Settings.DisclaimerAccepted = DisclaimerVersion;
+        _vm.Settings.Save();
+        return true;
     }
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)

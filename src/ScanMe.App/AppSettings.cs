@@ -13,6 +13,12 @@ public sealed class AppSettings
     public bool StartMonitorOnLaunch { get; set; }
     public bool MinimizeToTray { get; set; } = true;
 
+    /// <summary>Update-Prüfung und signierte Regel-Updates (nur anonyme Abrufe bei GitHub).</summary>
+    public bool OnlineFeatures { get; set; } = true;
+
+    /// <summary>Version, für die der Haftungshinweis bestätigt wurde.</summary>
+    public string? DisclaimerAccepted { get; set; }
+
     public static AppSettings Load()
     {
         try

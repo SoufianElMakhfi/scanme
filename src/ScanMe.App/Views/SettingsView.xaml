@@ -41,6 +41,15 @@
 
             <Border Style="{StaticResource Card}" Margin="0,14,0,0">
                 <StackPanel>
+                    <TextBlock Text="Online-Funktionen" Style="{StaticResource H2}" Margin="0,0,0,10" />
+                    <CheckBox Content="Nach neuen Versionen und neuen Erkennungsregeln suchen" IsChecked="{Binding OnlineFeatures}" />
+                    <TextBlock Style="{StaticResource Body}" FontSize="12" Foreground="{StaticResource MutedBrush}" Margin="26,2,0,0"
+                               Text="ScanMe ruft dazu anonym zwei Dateien von GitHub ab. Es werden keine Daten von Ihrem PC übertragen. Regeln werden nur übernommen, wenn ihre digitale Signatur gültig ist." />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                <StackPanel>
                     <TextBlock Text="Echtzeitüberwachung" Style="{StaticResource H2}" Margin="0,0,0,10" />
                     <CheckBox Content="Überwachung beim Start von ScanMe automatisch aktivieren" IsChecked="{Binding StartMonitorOnLaunch}" />
                     <CheckBox Content="Beim Schließen in den Infobereich (Tray) minimieren, solange die Überwachung läuft" IsChecked="{Binding MinimizeToTray}" />

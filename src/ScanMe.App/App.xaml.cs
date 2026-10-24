@@ -33,6 +33,7 @@ public partial class App : Application
 
     private async Task RenderAndExit(MainWindow window, string file, string? scan, string? page)
     {
+        window.Headless = true;
         window.WindowStartupLocation = WindowStartupLocation.Manual;
         window.Left = -10000;
         window.ShowInTaskbar = false;

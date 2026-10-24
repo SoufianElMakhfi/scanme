@@ -15,6 +15,10 @@ public static class OnlineUpdates
     public const string Repository = "SoufianElMakhfi/scanme";
     private static readonly string RulesBase = $"https://raw.githubusercontent.com/{Repository}/main/rules/";
 
+    // Reihenfolge wichtig: CurrentVersion muss vor dem HttpClient initialisiert sein (User-Agent).
+    public static Version CurrentVersion { get; } =
+        Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
+
     private static readonly HttpClient Http = CreateClient();
 
     private static HttpClient CreateClient()
@@ -23,9 +27,6 @@ public static class OnlineUpdates
         c.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("ScanMe", CurrentVersion.ToString(3)));
         return c;
     }
-
-    public static Version CurrentVersion { get; } =
-        Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
 
     /// <summary>Fragt die neueste Release-Version bei GitHub ab. Null = aktuell oder nicht erreichbar.</summary>
     public static async Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken ct = default)
@@ -74,7 +75,9 @@ public static class OnlineUpdates
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            return RuleStore.Version > 0 ? $"Offline – verwende gespeicherte Regeln (Version {RuleStore.Version})." : "Offline – nur eingebaute Regeln.";
+            return RuleStore.Version > 0
+                ? $"Regelserver nicht erreichbar – verwende gespeicherte Regeln (Version {RuleStore.Version})."
+                : "Regelserver nicht erreichbar – nur eingebaute Regeln.";
         }
         catch (Exception ex)
         {

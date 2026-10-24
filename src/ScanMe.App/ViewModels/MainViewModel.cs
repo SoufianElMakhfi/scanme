@@ -7,6 +7,7 @@ using ScanMe.Core.Actions;
 using ScanMe.Core.Engine;
 using ScanMe.Core.Models;
 using ScanMe.Core.Scanners;
+using ScanMe.Core.Updates;
 using ScanMe.Core.Util;
 
 namespace ScanMe.App.ViewModels;
@@ -46,6 +47,25 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private double _scanPercent;
     [ObservableProperty] private string _scanStatus = "Bereit.";
     [ObservableProperty] private string _scanStep = "";
+    [ObservableProperty] private UpdateInfo? _availableUpdate;
+    [ObservableProperty] private string _rulesStatus = RuleStore.Version > 0 ? $"Online-Regeln: Version {RuleStore.Version}" : "Nur eingebaute Regeln";
+
+    public string AppVersion { get; } = "Version " + OnlineUpdates.CurrentVersion.ToString(3);
+
+    /// <summary>Beim Start: nach neuer Version fragen und Regeln aktualisieren (nur wenn erlaubt).</summary>
+    public async Task CheckOnlineAsync()
+    {
+        if (!Settings.OnlineFeatures) return;
+        AvailableUpdate = await OnlineUpdates.CheckForUpdateAsync();
+        RulesStatus = await OnlineUpdates.UpdateRulesAsync();
+    }
+
+    [RelayCommand]
+    private void OpenUpdate()
+    {
+        if (AvailableUpdate != null)
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AvailableUpdate.Url) { UseShellExecute = true });
+    }
 
     [RelayCommand]
     private void Navigate(string page)
@@ -101,6 +121,11 @@ public sealed partial class MainViewModel : ObservableObject
 
         try
         {
+            if (Settings.OnlineFeatures)
+            {
+                ScanStep = "Prüfe auf neue Erkennungsregeln …";
+                RulesStatus = await OnlineUpdates.UpdateRulesAsync(_cts.Token);
+            }
             var engine = new ScanEngine(ScannerCatalog.CreateAll());
             var report = await engine.RunAsync(Settings.ToScanOptions(profile), progress, _cts.Token);
             LastReport = report;

@@ -26,6 +26,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _eventLogDays = s.EventLogDays;
         _minimizeToTray = s.MinimizeToTray;
         _startMonitorOnLaunch = s.StartMonitorOnLaunch;
+        _onlineFeatures = s.OnlineFeatures;
         _extraPaths = string.Join(Environment.NewLine, s.ExtraPaths);
         foreach (var sc in ScannerCatalog.CreateAll())
             Scanners.Add(new ScannerToggle { Id = sc.Id, Name = sc.Name, Description = sc.Description, InQuickScan = sc.InQuickScan, Enabled = !s.DisabledScanners.Contains(sc.Id) });
@@ -37,6 +38,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _eventLogDays;
     [ObservableProperty] private bool _minimizeToTray;
     [ObservableProperty] private bool _startMonitorOnLaunch;
+    [ObservableProperty] private bool _onlineFeatures;
     [ObservableProperty] private string _extraPaths;
     [ObservableProperty] private string? _message;
 
@@ -48,6 +50,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         s.EventLogDays = Math.Clamp(EventLogDays, 1, 365);
         s.MinimizeToTray = MinimizeToTray;
         s.StartMonitorOnLaunch = StartMonitorOnLaunch;
+        s.OnlineFeatures = OnlineFeatures;
         s.ExtraPaths = ExtraPaths.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         s.DisabledScanners = Scanners.Where(x => !x.Enabled).Select(x => x.Id).ToList();
         s.Save();
