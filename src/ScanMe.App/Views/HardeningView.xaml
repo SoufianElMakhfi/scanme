@@ -63,7 +63,10 @@
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" FontSize="15" />
                         <TextBlock Text="{Binding Message}" Style="{StaticResource Body}" Margin="0,4,0,0" Visibility="{Binding Message, Converter={StaticResource Vis}}" />
-                        <TextBlock Text="Lade bzw. ändere Einstellungen …" Style="{StaticResource Muted}" Visibility="{Binding IsBusy, Converter={StaticResource Vis}}" />
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding IsBusy, Converter={StaticResource Vis}}">
+                            <ContentControl Style="{StaticResource Spinner}" Width="16" Height="16" Margin="0,0,8,0" />
+                            <TextBlock Text="Lade bzw. ändere Einstellungen …" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                        </StackPanel>
                         <TextBlock Text="Ohne Adminrechte können Einstellungen nur angezeigt, aber nicht geändert werden." Foreground="{StaticResource MediumBrush}"
                                    Visibility="{Binding IsElevated, Converter={StaticResource InvVis}}" Margin="0,4,0,0" />
                     </StackPanel>
@@ -115,7 +118,14 @@
                                                         <Run Text="{Binding RecommendedText, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding RebootNote, Mode=OneWay}" />
                                                     </TextBlock>
                                                 </StackPanel>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                                                            Visibility="{Binding IsWorking, Converter={StaticResource Vis}}">
+                                                    <ContentControl Style="{StaticResource Spinner}" Margin="0,0,10,0" />
+                                                    <TextBlock Text="{Binding WorkingText}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                                                            Visibility="{Binding IsWorking, Converter={StaticResource InvVis}}"
+                                                            IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=UserControl}}">
                                                     <Button Style="{StaticResource ModeOff}" Content="Aus" Command="{Binding SetOffCommand}" />
                                                     <Button Style="{StaticResource ModeAudit}" Content="Testmodus" Command="{Binding SetAuditCommand}"
                                                             Visibility="{Binding SupportsAudit, Converter={StaticResource Vis}}" />

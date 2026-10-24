@@ -36,6 +36,10 @@ public sealed partial class HardeningItemViewModel : ObservableObject
     public bool IsOff => State == HardeningState.Off;
     public bool MeetsRecommendation => Item.Recommended is not { } r || State == HardeningState.NotAvailable || HardeningService.Satisfies(State, r);
 
+    // Laufender Vorgang an genau diesem Eintrag (z. B. Sysmon-Download und -Installation)
+    [ObservableProperty] private bool _isWorking;
+    [ObservableProperty] private string _workingText = "";
+
     [RelayCommand] private Task SetOn() => _owner.ApplyAsync(this, HardeningMode.On);
     [RelayCommand] private Task SetAudit() => _owner.ApplyAsync(this, HardeningMode.Audit);
     [RelayCommand] private Task SetOff() => _owner.ApplyAsync(this, HardeningMode.Off);
@@ -52,7 +56,8 @@ public sealed partial class HardeningViewModel : ObservableObject
     public ObservableCollection<AuditHit> Hits { get; } = new();
     public bool IsElevated { get; } = SystemEnv.IsElevated;
 
-    [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsIdle))] private bool _isBusy;
+    public bool IsIdle => !IsBusy;
     [ObservableProperty] private string? _message;
     [ObservableProperty] private string _summary = "Wird geladen …";
     [ObservableProperty] private bool _loaded;
@@ -91,8 +96,13 @@ public sealed partial class HardeningViewModel : ObservableObject
             return;
 
         IsBusy = true;
+        vm.WorkingText = mode == HardeningMode.Off ? "Wird ausgeschaltet …"
+            : vm.Item.Id == "log:sysmon" ? "Lädt von Microsoft und installiert …"
+            : "Wird eingerichtet …";
+        vm.IsWorking = true;
         var result = await Task.Run(() => HardeningService.Apply(vm.Item, mode));
         vm.State = await Task.Run(() => vm.Item.Read());
+        vm.IsWorking = false;
         Message = (result.Success ? "✔ " : "✖ ") + result.Message;
         UpdateSummary();
         IsBusy = false;
