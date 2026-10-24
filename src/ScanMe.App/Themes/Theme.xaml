@@ -475,9 +475,9 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ContentControl">
                     <Viewbox>
-                        <Canvas Width="20" Height="20" RenderTransformOrigin="0.5,0.5">
+                        <Canvas x:Name="Spin" Width="20" Height="20" RenderTransformOrigin="0.5,0.5">
                             <Canvas.RenderTransform>
-                                <RotateTransform x:Name="Rotation" Angle="0" />
+                                <RotateTransform Angle="0" />
                             </Canvas.RenderTransform>
                             <Ellipse Width="20" Height="20" Stroke="{StaticResource Surface3Brush}" StrokeThickness="2.5" />
                             <Path Data="M10,1.25 A8.75,8.75 0 0 1 18.75,10" Stroke="{StaticResource AccentBrush}" StrokeThickness="2.5"
@@ -488,7 +488,7 @@
                         <EventTrigger RoutedEvent="FrameworkElement.Loaded">
                             <BeginStoryboard>
                                 <Storyboard>
-                                    <DoubleAnimation Storyboard.TargetName="Rotation" Storyboard.TargetProperty="Angle"
+                                    <DoubleAnimation Storyboard.TargetName="Spin" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                                                      From="0" To="360" Duration="0:0:0.9" RepeatBehavior="Forever" />
                                 </Storyboard>
                             </BeginStoryboard>
