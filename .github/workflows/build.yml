@@ -36,7 +36,6 @@ jobs:
                 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
                 -p:EnableCompressionInSingleFile=true -p:DebugType=none
             }
-            Remove-Item "publish/$rid/*" -Exclude *.exe
           }
 
       # --- Signierung (SignPath Foundation) ---
@@ -76,7 +75,8 @@ jobs:
         shell: pwsh
         run: |
           foreach ($rid in "win-x64", "win-arm64") {
-            Compress-Archive -Path "publish/$rid/*.exe" -DestinationPath "ScanMe-$rid.zip"
+            # EXEs plus Data\loldrivers.json (Treiberliste, bewusst nicht in der EXE – siehe ScanMe.Core.csproj)
+            Compress-Archive -Path "publish/$rid/*" -DestinationPath "ScanMe-$rid.zip"
           }
           Get-FileHash ScanMe-*.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Set-Content SHA256SUMS.txt
 

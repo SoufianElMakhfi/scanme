@@ -11,7 +11,8 @@ früheren Angriffs oder Phishings? Zu **jedem Fund** erklärt ScanMe, *was* gefu
 ## Download & Start
 
 1. Unter **Releases** die Datei `ScanMe-win-x64.zip` herunterladen (ARM64 für Snapdragon-/Surface-Geräte).
-2. Entpacken und `ScanMe.exe` starten – **keine Installation, kein .NET nötig**.
+2. Entpacken und `ScanMe.exe` starten – **keine Installation, kein .NET nötig**. Den Ordner `Data` (Treiberliste)
+   neben der EXE lassen.
 3. Die App fragt nach Administratorrechten. Ohne sie fehlen u. a. fremde Prozesse, das Sicherheitsprotokoll,
    Defender-Ausnahmen und viele geplante Aufgaben.
 
@@ -56,7 +57,7 @@ Microsoft Defender wird lokal über `MpCmdRun.exe` befragt; dessen eigene Cloud-
 | **Malware** | Defender-Bedrohungsverlauf (auch frühere/entfernte Funde), **Inhaltssignaturen** (Infostealer, RATs, Mimikatz, Cobalt Strike, Miner, Keylogger, Tor-C2, Discord/Telegram-Exfiltration), Packer/Entropie, gefälschte Microsoft-Metadaten, **Zweitmeinung durch Microsoft Defender** |
 | **Dateisystem & Phishing** | Downloads, Desktop, AppData, Temp, Public, ProgramData, Papierkorb: versteckte Programme, Doppelendungen (`rechnung.pdf.exe`), RTLO-Tricks, **LNK-Phishing**, ISO/IMG/VHD-Container, Makro-Dokumente/OneNote, **versteckte NTFS-Datenströme**, Ransomware-Notizen/-Endungen, **Download-Quelle (URL) jeder Datei** |
 | **Browser** | Erweiterungen (Chrome, Edge, Brave, Vivaldi, Opera, Firefox) mit Rechten & Herkunft, **per Richtlinie erzwungene Erweiterungen**, Startseiten-/Such-Hijacking, **Benachrichtigungs-Spam**, manipulierte Browser-Verknüpfungen |
-| **Treiber** | Unsignierte, **verwundbare (BYOVD)** und **umbenannte Treiber** (z. B. WinRing0 von Krypto-Minern), Testsignaturmodus, Treiber-Sperrliste, Speicherintegrität |
+| **Treiber** | Abgleich aller Treiber mit **rund 700 bekannt verwundbaren und bösartigen Treibern** aus [LOLDrivers](https://www.loldrivers.io) – über den Fingerabdruck (SHA256 und Authentihash), daher auch umbenannt oder neu signiert erkannt; unsignierte und **umbenannte Treiber** (z. B. WinRing0 von Krypto-Minern), Testsignaturmodus, Treiber-Sperrliste, Speicherintegrität |
 | **Ereignisprotokolle** | Gelöschte Logs, neu installierte Dienste, neue Konten/Admins, **Brute-Force**, **RDP-Anmeldungen aus dem Internet**, Defender-Ausnahmen, von PowerShell markierte Skripte |
 | **Sicherheitseinstellungen** | Defender (Echtzeitschutz, Signaturen, Manipulationsschutz, **Ausnahmen**), Firewall, UAC, SmartScreen, WDigest, LSA-Schutz, RDP/NLA, SMBv1, Updates, Secure Boot, Auto-Login-Passwort |
 | **Konten** | Versteckte Konten (`$`, vom Anmeldebildschirm ausgeblendet), Gast/Admin aktiv, neue Admins |

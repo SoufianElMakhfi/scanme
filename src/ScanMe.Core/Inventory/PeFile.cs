@@ -16,6 +16,47 @@ public sealed class PeFile
     /// <summary>Daten hinter der letzten Sektion (nur aussagekraeftig, wenn die ganze Datei gelesen wurde).</summary>
     public long OverlaySize { get; private set; }
 
+    /// <summary>
+    /// Authenticode-Hash (SHA256): Hash der Datei ohne Pruefsumme, Zertifikatsverzeichnis und Signaturblock.
+    /// Bleibt gleich, wenn eine Datei umbenannt oder neu signiert wird – so fuehren z. B. LOLDrivers und die
+    /// Microsoft-Treibersperrliste ihre Eintraege.
+    /// </summary>
+    public static string? AuthenticodeSha256(string path, long maxSize = 64 * 1024 * 1024)
+    {
+        try
+        {
+            if (new FileInfo(path).Length > maxSize) return null;
+            return AuthenticodeSha256(File.ReadAllBytes(path));
+        }
+        catch { return null; }
+    }
+
+    public static string? AuthenticodeSha256(byte[] d)
+    {
+        if (d.Length < 0x100 || d[0] != 'M' || d[1] != 'Z') return null;
+        int pe = BitConverter.ToInt32(d, 0x3C);
+        if (pe <= 0 || pe + 0x108 > d.Length || d[pe] != 'P' || d[pe + 1] != 'E') return null;
+        int opt = pe + 24;
+        bool is64 = BitConverter.ToUInt16(d, opt) == 0x20B;
+        int checksum = opt + 64;
+        int certDir = opt + (is64 ? 144 : 128); // Data Directory 4 = Sicherheitsverzeichnis (Signatur)
+        if (certDir + 8 > d.Length) return null;
+
+        uint certOff = BitConverter.ToUInt32(d, certDir);
+        uint certSize = BitConverter.ToUInt32(d, certDir + 4);
+        bool signed = certOff > certDir && certSize > 0 && (long)certOff + certSize <= d.Length;
+        int end = signed ? (int)certOff : d.Length;
+
+        using var h = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+        h.AppendData(d, 0, checksum);
+        h.AppendData(d, checksum + 4, certDir - checksum - 4);
+        h.AppendData(d, certDir + 8, end - certDir - 8);
+        // Daten hinter dem Signaturblock (selten) zaehlen ebenfalls
+        int after = signed ? (int)(certOff + certSize) : d.Length;
+        if (after < d.Length) h.AppendData(d, after, d.Length - after);
+        return Convert.ToHexString(h.GetHashAndReset()).ToLowerInvariant();
+    }
+
     public static PeFile? TryParse(byte[] data, long fileLength)
     {
         try

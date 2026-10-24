@@ -59,6 +59,10 @@ public sealed class DriverScanner : IScanner
     public Task ScanAsync(ScanContext ctx)
     {
         ScanBootConfiguration(ctx);
+        if (Knowledge.LolDrivers.Count == 0)
+            ctx.Note($"Treiberliste fehlt ({Knowledge.LolDrivers.DataFile}) – Abgleich mit LOLDrivers übersprungen. Den Ordner 'Data' neben ScanMe.exe mit entpacken.");
+        else
+            ctx.Note($"{Knowledge.LolDrivers.Count} bekannte Treiber aus LOLDrivers (Stand {Knowledge.LolDrivers.Generated}).");
 
         // Treiberdienste (Pfad -> Dienstname), damit auch geladene Treiber deaktiviert werden koennen
         const string services = @"HKLM\SYSTEM\CurrentControlSet\Services";
@@ -142,15 +146,29 @@ public sealed class DriverScanner : IScanner
         else if (info.IsMicrosoftSigned)
             f.IsProtected = true;
 
+        // Abgleich mit LOLDrivers ueber den Fingerabdruck – auch fuer WHQL-signierte Treiber von Drittherstellern,
+        // die Windows als "von Microsoft signiert" fuehrt (sonst waeren gerade diese ungeprueft).
+        var known = info.Exists ? Knowledge.LolDrivers.Find(path, info.Sha256) : null;
+        if (known != null)
+        {
+            f.IsProtected = false; // kein Windows-Bestandteil, auch wenn Microsoft ihn signiert hat
+            if (known.IsMalicious)
+                f.AddIndicator("DRV_MALICIOUS", $"Bekannter bösartiger Treiber laut LOLDrivers: {known.Describe()}", 85);
+            else
+                f.AddIndicator("DRV_VULNERABLE", $"Bekannt verwundbarer Treiber laut LOLDrivers: {known.Describe()} – kann zum Abschalten von Sicherheitssoftware missbraucht werden", 40);
+            f.Detail("LOLDrivers", known.Url);
+        }
+
         string? original = info.OriginalFilename;
-        if (TryVulnerable(name, out var vendor) || (original != null && TryVulnerable(original, out vendor)))
+        // Namensliste nur, wenn der Fingerabdruck nichts ergab (z. B. neuere, nicht gelistete Version desselben Treibers)
+        if (known == null && (TryVulnerable(name, out var vendor) || (original != null && TryVulnerable(original, out vendor))))
             f.AddIndicator("DRV_VULNERABLE", $"Bekannt verwundbarer Treiber ({vendor}) – kann zum Abschalten von Sicherheitssoftware missbraucht werden", 40);
 
         // Umbenannter Treiber: Krypto-Miner bringen z. B. WinRing0.sys unter Tarnnamen mit.
         if (original != null && !original.Equals(name, StringComparison.OrdinalIgnoreCase)
             && Path.GetExtension(original).Equals(".sys", StringComparison.OrdinalIgnoreCase) && !info.IsMicrosoftSigned)
         {
-            bool vulnerable = TryVulnerable(original, out _);
+            bool vulnerable = known != null || TryVulnerable(original, out _);
             // Hersteller benennen eigene signierte Treiber oft um (NTIOLib -> NTIOLib_X64) – nur bei verwundbaren Treibern wirklich relevant.
             f.AddIndicator("DRV_RENAMED", $"Treiber wurde umbenannt: eigentlich \"{original}\", hier als \"{name}\"",
                 vulnerable ? 45 : info.Signature == SignatureState.Valid ? 5 : 20);
@@ -167,14 +185,15 @@ public sealed class DriverScanner : IScanner
         f.Description = $"Kernel-Treiber {path}" + (info.Signer != null ? $", signiert von {info.Signer}." : ".");
         f.Explanation = "Treiber laufen im Windows-Kern mit uneingeschränkten Rechten. Rootkits verstecken sich so; Ransomware lädt verwundbare, aber " +
                         "signierte Treiber, um Antivirensoftware zu beenden ('BYOVD').";
-        f.Recommendation = f.Indicators.Any(i => i.Code is "DRV_RENAMED" or "DRV_MINER")
+        f.Recommendation = f.Indicators.Any(i => i.Code is "DRV_RENAMED" or "DRV_MINER" or "DRV_MALICIOUS")
             ? "Der Treiber gehört sehr wahrscheinlich zu Schadsoftware. Treiberdienst deaktivieren, Datei und das zugehörige Programm im selben Ordner in Quarantäne verschieben, " +
               "anschließend Defender-Offline-Scan ausführen. Da das Programm mit Adminrechten lief, Passwörter von einem anderen Gerät aus ändern."
             : f.Indicators.Any(i => i.Code == "DRV_VULNERABLE")
             ? "Zugehöriges Programm aktualisieren oder deinstallieren. 'Speicherintegrität' und die Microsoft-Treiber-Sperrliste aktivieren."
             : "Herkunft klären. Unbekannte, unsignierte Treiber sind ein starkes Rootkit-Indiz – Defender-Offline-Scan ausführen.";
         f.Actions.Add(new RemediationAction { Kind = RemediationKind.OpenLocation, Label = "Speicherort öffnen", Target = path, RequiresConfirmation = false });
-        if (service != null && !f.IsProtected)
+        // Treiber im Windows-Ordner mit Microsoft-Signatur deaktiviert SafetyGuard grundsaetzlich nicht – Button nicht anbieten.
+        if (service != null && !f.IsProtected && !info.IsWindowsComponent)
             f.Actions.Insert(0, new RemediationAction { Kind = RemediationKind.DisableService, Label = "Treiberdienst deaktivieren", Target = service });
         if (info.Exists && !info.IsMicrosoftSigned)
             f.Actions.Add(new RemediationAction { Kind = RemediationKind.QuarantineFile, Label = "In Quarantäne verschieben", Target = path });

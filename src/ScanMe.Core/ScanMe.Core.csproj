@@ -5,6 +5,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Bekannt verwundbare/boesartige Treiber (LOLDrivers, Apache-2.0); erzeugt mit tools/update-loldrivers.ps1.
+         Bewusst als eigene Datei neben der EXE: In eine Programmdatei eingebettet haelt Defender die Hash-Liste
+         fuer ein Werkzeug zum Abschalten von Virenscannern (Fehlalarm "Exploit:Win64/CVE-...!MTB"). -->
+    <None Include="Knowledge\Data\loldrivers.json" Link="Data\loldrivers.json" CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    <None Include="Knowledge\Data\LICENSE-loldrivers.txt" Link="Data\LICENSE-loldrivers.txt" CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.1" />
     <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.2" />
