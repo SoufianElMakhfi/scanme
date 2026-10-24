@@ -46,6 +46,8 @@ public partial class App : Application
             vm.NavigateCommand.Execute(page);
             if (page == "Processes")
                 while (vm.Processes.IsLoading || vm.Processes.Rows.Count == 0) await Task.Delay(200);
+            if (page == "Hardening")
+                while (!vm.Hardening.Loaded) await Task.Delay(200);
         }
         await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
         await Task.Delay(500);

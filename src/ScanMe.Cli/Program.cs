@@ -69,6 +69,23 @@ if (args.Length > 1 && args[0] == "--rules-verify")
     Console.WriteLine(ok ? "✔ Signatur gültig." : "✖ Signatur ungültig oder fehlt.");
     return ok ? 0 : 1;
 }
+if (args.Contains("--hardening"))
+{
+    foreach (var group in ScanMe.Core.Hardening.HardeningCatalog.All.GroupBy(i => i.Group))
+    {
+        Console.WriteLine($"\n== {group.Key}");
+        foreach (var item in group)
+        {
+            var state = item.Read();
+            string rec = item.Recommended is { } r ? $"(empfohlen: {ScanMe.Core.Hardening.HardeningService.Text(r)})" : "(optional)";
+            Console.WriteLine($"  [{ScanMe.Core.Hardening.HardeningService.Text(state),-15}] {item.Title} {rec}");
+        }
+    }
+    var hits = ScanMe.Core.Hardening.HardeningService.RecentHits();
+    Console.WriteLine($"\nTestmodus-/Blockier-Ereignisse (14 Tage): {hits.Count}");
+    foreach (var h in hits.Take(15)) Console.WriteLine($"  {h.When:g} {(h.Blocked ? "BLOCKIERT" : "wäre blockiert")}: {h.Rule} – {h.Process} → {h.Target}");
+    return 0;
+}
 if (args.Contains("--update-rules"))
 {
     Console.WriteLine(await ScanMe.Core.Updates.OnlineUpdates.UpdateRulesAsync());

@@ -25,10 +25,12 @@ public sealed partial class MainViewModel : ObservableObject
         Quarantine = new QuarantineViewModel();
         SettingsPage = new SettingsViewModel(this);
         Monitor = new MonitorViewModel(this);
+        Hardening = new HardeningViewModel();
         _currentPage = Dashboard;
     }
 
     public MonitorViewModel Monitor { get; }
+    public HardeningViewModel Hardening { get; }
 
     public AppSettings Settings { get; }
     public DashboardViewModel Dashboard { get; }
@@ -75,12 +77,14 @@ public sealed partial class MainViewModel : ObservableObject
             "Findings" => Findings,
             "Processes" => Processes,
             "Monitor" => Monitor,
+            "Hardening" => Hardening,
             "Quarantine" => Quarantine,
             "Settings" => SettingsPage,
             _ => Dashboard,
         };
         if (CurrentPage == Processes && Processes.Rows.Count == 0) Processes.RefreshCommand.Execute(null);
         if (CurrentPage == Quarantine) Quarantine.RefreshCommand.Execute(null);
+        if (CurrentPage == Hardening && !Hardening.Loaded) Hardening.RefreshCommand.Execute(null);
     }
 
     public void ShowFinding(FindingItemViewModel item)

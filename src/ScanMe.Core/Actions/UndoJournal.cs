@@ -12,6 +12,7 @@ public enum UndoKind
     ServiceStart,
     DefenderExclusion,
     HostsFile,
+    Hardening,
 }
 
 /// <summary>Ein rueckgaengig machbarer Schritt mit dem vorherigen Zustand.</summary>
@@ -128,6 +129,10 @@ public static class UndoJournal
                     break;
                 case UndoKind.HostsFile:
                     File.Copy(e.PreviousValue!, e.Target, overwrite: true);
+                    break;
+                case UndoKind.Hardening:
+                    if (Hardening.HardeningService.Restore(e.Target, e.PreviousValue) is { } hardeningError)
+                        return ActionResult.Fail("Rückgängig fehlgeschlagen: " + hardeningError);
                     break;
             }
             MarkUndone(e.Id);

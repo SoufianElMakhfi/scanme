@@ -66,6 +66,7 @@ public partial class MainWindow : Window
             FindingsViewModel => NavFindings,
             ProcessesViewModel => NavProcesses,
             MonitorViewModel => NavMonitor,
+            HardeningViewModel => NavHardening,
             QuarantineViewModel => NavQuarantine,
             SettingsViewModel => NavSettings,
             _ => NavDashboard,
