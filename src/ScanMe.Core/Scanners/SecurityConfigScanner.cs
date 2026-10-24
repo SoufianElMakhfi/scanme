@@ -151,12 +151,6 @@ public sealed class SecurityConfigScanner : IScanner
         return list;
     }
 
-    private static readonly string[] BroadExclusions =
-    [
-        @"c:\", @"c:\users", @"c:\windows", @"c:\programdata", @"%temp%", @"%appdata%", @"%localappdata%", @"\appdata", @"\temp",
-        @"c:\users\public", @"\downloads", @"\desktop", "*", @"c:\program files",
-    ];
-
     private void ScanDefenderExclusions(ScanContext ctx)
     {
         const string root = @"HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions";
@@ -174,22 +168,37 @@ public sealed class SecurityConfigScanner : IScanner
             return;
         }
 
+        // Originalpfade der Quarantaene: Ausnahmen, die darauf zeigen, hat sehr wahrscheinlich die Malware selbst angelegt.
+        var quarantined = Actions.Quarantine.List().Select(q => q.OriginalPath).ToList();
+
         foreach (var (kind, value, key) in entries)
         {
-            string v = value.ToLowerInvariant().TrimEnd('\\');
-            bool broad = kind == "Dateiendung" && v.TrimStart('.', '*') is "exe" or "dll" or "ps1" or "bat" or "vbs" or "js" or "scr"
-                         || kind == "Pfad" && BroadExclusions.Any(b => v == b.TrimEnd('\\') || v.EndsWith(b.TrimEnd('\\')) && b.StartsWith('\\'));
-            bool userWritable = kind == "Pfad" && Knowledge.LocationClassifier.IsUserWritable(Knowledge.LocationClassifier.Classify(PathUtil.Normalize(value) + "\\x"));
-            bool scriptHost = kind == "Prozess" && ExecutableAssessor.LolBins.Contains(Path.GetFileName(v));
+            var indicators = Knowledge.ExclusionRisk.Assess(kind, value, quarantined);
+            bool malware = indicators.Any(i => i.Code is "EXCL_QUARANTINED" or "EXCL_MASQUERADE");
+            bool cheat = indicators.Any(i => i.Code == "EXCL_CHEAT");
+            bool orphaned = indicators.Any(i => i.Code == "EXCL_ORPHANED");
 
-            int weight = broad || scriptHost ? 65 : userWritable ? 40 : 15;
-            var f = Add(ctx, $"Defender-Ausnahme ({kind}): {value}", weight,
-                $"Microsoft Defender prüft {(kind == "Pfad" ? "den Ordner" : kind == "Prozess" ? "den Prozess" : "die " + kind)} \"{value}\" nicht.",
-                broad || scriptHost
-                    ? "Diese Ausnahme ist so weit gefasst, dass Malware dort ungestört liegen kann. Angreifer fügen genau solche Ausnahmen nach einem Einbruch hinzu."
-                    : "Ausnahmen sind manchmal für Spiele oder Entwicklertools nötig, werden aber auch von Malware gesetzt, um sich zu verstecken.",
-                "Prüfen, ob Sie (oder ein bekanntes Programm) die Ausnahme angelegt haben. Falls nicht: entfernen und einen vollständigen Scan des Ordners durchführen.",
-                key);
+            var f = new Finding
+            {
+                ScannerId = Id,
+                Category = FindingCategory.SecurityConfig,
+                Title = $"Defender-Ausnahme ({kind}): {value}",
+                Location = key,
+                Description = $"Microsoft Defender prüft {(kind == "Pfad" ? "den Pfad" : kind == "Prozess" ? "den Prozess" : "die " + kind)} \"{value}\" nicht.",
+                Explanation = malware
+                    ? "Diese Ausnahme gehört sehr wahrscheinlich zu Schadsoftware: Malware trägt sich selbst als Ausnahme ein, damit Defender sie nie prüft. " +
+                      "Bleibt die Ausnahme bestehen, wird die Malware bei einer erneuten Infektion wieder ignoriert."
+                    : cheat
+                        ? "Cheat-, Crack- und Loader-Programme verlangen oft eine Ausnahme, weil Virenscanner sie erkennen. Genau so gelangen Krypto-Miner und Passwortdiebe auf PCs."
+                        : "Ausnahmen sind manchmal für Spiele oder Entwicklertools nötig, werden aber auch von Malware gesetzt, um sich zu verstecken.",
+                Recommendation = malware || orphaned
+                    ? "Ausnahme entfernen – sie wird nicht mehr gebraucht und schützt nur noch Schadsoftware. Unbedenklich ist sie nur, wenn Sie den Pfad selbst eingetragen haben und das Programm kennen."
+                    : cheat
+                        ? "Ausnahme entfernen und das Programm im Ordner mit Defender scannen. Behalten nur, wenn Sie der Quelle vertrauen – bei Cheats/Cracks ist das praktisch nie der Fall."
+                        : "Prüfen: Windows-Sicherheit → Viren- & Bedrohungsschutz → Einstellungen verwalten → Ausschlüsse. Unbedenklich, wenn Sie bzw. ein bekanntes Programm (z. B. Entwicklungsumgebung) die Ausnahme angelegt haben; sonst entfernen.",
+            };
+            f.Indicators.AddRange(indicators);
+            ctx.Add(f);
             f.Actions.Add(new RemediationAction
             {
                 Kind = RemediationKind.RemoveDefenderExclusion,

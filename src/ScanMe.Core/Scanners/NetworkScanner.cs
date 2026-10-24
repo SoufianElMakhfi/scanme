@@ -70,6 +70,7 @@ public sealed class NetworkScanner : IScanner
             ctx.ThrowIfCancelled();
             var proc = snap.Get(group.Key);
             string name = proc?.Name ?? $"PID {group.Key}";
+            if (SelfIdentity.IsOwnProcess(group.Key, proc?.ImagePath)) continue;
             string? path = proc?.ImagePath ?? ProcessSnapshot.QueryImagePath(group.Key);
 
             var external = group.Where(c => c.IsEstablished && c.IsExternal).ToList();

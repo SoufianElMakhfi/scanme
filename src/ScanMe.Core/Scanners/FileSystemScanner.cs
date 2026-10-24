@@ -160,7 +160,7 @@ public sealed partial class FileSystemScanner : IScanner
         string name = fi.Name;
 
         // ScanMe selbst (unsigniert) nicht als verdaechtig melden
-        if (fi.FullName.Equals(Environment.ProcessPath, StringComparison.OrdinalIgnoreCase)) return;
+        if (SelfIdentity.IsOwnFile(fi.FullName)) return;
 
         // $I-Dateien im Papierkorb sind nur Metadaten (Originalname/-pfad), keine Programme
         if (name.StartsWith("$I", StringComparison.Ordinal) && fi.FullName.Contains(@"\$Recycle.Bin\", StringComparison.OrdinalIgnoreCase)) return;
@@ -301,7 +301,7 @@ public sealed partial class FileSystemScanner : IScanner
             if (soft.Count > 0)
                 f.AddIndicator("SCRIPT_CONTENT", "Im Skript: " + string.Join("; ", soft.Select(r => r.Text)), Math.Min(soft.Sum(r => r.Weight), 25));
             StaticAnalyzer.Analyze(f, fi.FullName);
-            f.Detail("Skriptauszug", TextUtil.Truncate(content.Replace("\r", "").Replace("\n", " ⏎ "), 400));
+            f.Detail("Skriptauszug", TextUtil.Truncate(content.Replace("\r\n", "\n").Trim(), 1500));
         }
         f.Detail("Erstellt", fi.CreationTime.ToString("g")).Detail("SHA256", FileTrustService.TryHash(fi.FullName));
         f.Sha256 = f.Details.GetValueOrDefault("SHA256");

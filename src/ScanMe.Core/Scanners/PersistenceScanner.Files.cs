@@ -72,7 +72,7 @@ public sealed partial class PersistenceScanner
             string content = File.ReadAllText(file);
             foreach (var rule in CommandLineRules.Match(content))
                 f.AddIndicator("SCRIPT_" + rule.Id, "Im Skript: " + rule.Text, rule.Weight);
-            f.Detail("Skriptauszug", TextUtil.Truncate(content.Replace("\r", "").Replace("\n", " ⏎ "), 400));
+            f.Detail("Skriptauszug", TextUtil.Truncate(content.Replace("\r\n", "\n").Trim(), 1500));
         }
         catch { }
     }

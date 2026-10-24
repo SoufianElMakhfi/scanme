@@ -205,19 +205,31 @@ public sealed class EventLogScanner : IScanner
         }
     }
 
+    /// <summary>Defender-Konfigurationsaenderung (Ereignis 5007): Feld 2 = alter Wert, Feld 3 = neuer Wert.</summary>
+    private sealed record DefenderChange(DateTime When, string Old, string New)
+    {
+        public bool IsExclusion => (Old + New).Contains(@"\Exclusions\", StringComparison.OrdinalIgnoreCase);
+        public bool Added => Old.Length == 0 && New.Length > 0;
+        public bool Removed => Old.Length > 0 && New.Length == 0;
+        public string Item => (New.Length > 0 ? New : Old).Split(" = ")[0].Split(@"\Exclusions\").Last();
+        public string Describe() => Removed ? $"{When:T} entfernt: {Item}" : Added ? $"{When:T} hinzugefügt: {Item}" : $"{When:T} geändert: {Old} → {New}";
+    }
+
+    private readonly List<DefenderChange> _defenderChanges = new();
+
     private void DefenderEvents(ScanContext ctx, long ms)
     {
         const string log = "Microsoft-Windows-Windows Defender/Operational";
-        var exclusions = new List<string>();
+        _defenderChanges.Clear();
         int rtpOff = 0;
         foreach (var r in Query(ctx, log, $"*[System[(EventID=5007 or EventID=5001) and {Time(ms)}]]"))
         {
             if (r.Id == 5001) { rtpOff++; continue; }
-            string? newValue = Prop(r, 3) ?? Prop(r, 2);
-            if (newValue != null && newValue.Contains("Exclusions", StringComparison.OrdinalIgnoreCase))
-                exclusions.Add($"{r.TimeCreated:g}: {newValue}");
+            _defenderChanges.Add(new DefenderChange(r.TimeCreated ?? DateTime.MinValue, (Prop(r, 2) ?? "").Trim(), (Prop(r, 3) ?? "").Trim()));
         }
 
+        // Nur HINZUGEFUEGTE Ausnahmen sind ein Risiko – entfernte verbessern den Schutz.
+        var exclusions = _defenderChanges.Where(c => c.IsExclusion && c.Added).Select(c => $"{c.When:g}: {c.Item}").ToList();
         if (exclusions.Count > 0)
         {
             var f = NewFinding($"Defender-Ausnahmen wurden hinzugefügt ({exclusions.Count})", FindingCategory.SecurityConfig);
@@ -238,25 +250,115 @@ public sealed class EventLogScanner : IScanner
         }
     }
 
+    /// <summary>Ein vollstaendig zusammengesetzter Skriptblock (4104 teilt grosse Bloecke in mehrere Ereignisse).</summary>
+    private sealed record ScriptBlock(string Id, DateTime When, string Text, int Parts, string? Path, string? UserSid, int? ProcessId);
+
     private void PowerShellEvents(ScanContext ctx, long ms)
     {
-        // Level 3 (Warnung) bei 4104: PowerShell selbst hat den Skriptblock als verdaechtig eingestuft.
-        var seen = new HashSet<string>();
+        // Level 3 (Warnung) bei 4104: PowerShell hat den Block anhand von Schluesselwoertern als verdaechtig markiert.
+        // Diese Markierung ist nur ein Hinweis – bewertet wird, was der Block tatsaechlich tut.
+        // Felder sofort auslesen – die EventRecords werden nach jedem Lesevorgang freigegeben.
+        var parts = new Dictionary<string, List<(int No, int Total, string Text, DateTime When, string? Path, string? Sid, int? Pid)>>();
         foreach (var r in Query(ctx, "Microsoft-Windows-PowerShell/Operational", $"*[System[(EventID=4104) and (Level=3) and {Time(ms)}]]"))
         {
-            string script = Prop(r, 2) ?? "";
-            string key = script.Length > 200 ? script[..200] : script;
-            if (!seen.Add(key) || seen.Count > 15) continue;
-
-            var f = NewFinding($"Verdächtiges PowerShell-Skript ausgeführt ({r.TimeCreated:g})", FindingCategory.Malware);
-            f.Description = TextUtil.Truncate(script.Replace("\r", "").Replace("\n", " ⏎ "), 500);
-            f.Explanation = "PowerShell protokolliert Skripte, die verdächtige Befehle enthalten, automatisch als Warnung. Das hilft, dateilose Angriffe nachzuvollziehen.";
-            f.Recommendation = "Inhalt prüfen. Unbekannte Skripte mit Download-, Verschleierungs- oder Speicherbefehlen deuten auf einen Angriff hin.";
-            f.AddIndicator("PS_SUSPICIOUS", "Von PowerShell als verdächtig markierter Skriptblock", 20);
-            foreach (var rule in CommandLineRules.Match(script))
-                f.AddIndicator("PS_" + rule.Id, rule.Text, Math.Min(rule.Weight, 40));
-            f.Detail("Skriptpfad", Prop(r, 4));
-            ctx.Add(f);
+            string id = Prop(r, 3) ?? Guid.NewGuid().ToString();
+            int.TryParse(Prop(r, 0), out int no);
+            int.TryParse(Prop(r, 1), out int total);
+            if (!parts.TryGetValue(id, out var list)) parts[id] = list = new();
+            list.Add((no, total, Prop(r, 2) ?? "", r.TimeCreated ?? DateTime.MinValue, Prop(r, 4), r.UserId?.Value, r.ProcessId));
         }
+
+        var blocks = parts.Select(kv =>
+        {
+            var ordered = kv.Value.OrderBy(p => p.No).ToList();
+            var first = ordered[0];
+            return new ScriptBlock(kv.Key, first.When, string.Concat(ordered.Select(p => p.Text)),
+                Math.Max(ordered.Count, ordered.Max(p => p.Total)), first.Path, first.Sid, first.Pid);
+        }).OrderByDescending(b => b.When).ToList();
+
+        var ownActions = Actions.UndoJournal.Load().Where(e => e.Kind == Actions.UndoKind.DefenderExclusion).ToList();
+        int reported = 0;
+        // Inhaltsgleiche Bloecke (z. B. ein Hilfsskript, das regelmaessig laeuft) nur einmal melden – mit Anzahl und Zeitpunkten.
+        foreach (var group in blocks.GroupBy(b => b.Text).OrderByDescending(g => g.Max(b => b.When)))
+        {
+            ctx.ThrowIfCancelled();
+            var block = group.First();
+            // Automatisch erzeugter Modulcode (z. B. Laden des Defender-Moduls) enthaelt nur Deklarationen, keine Aufrufe.
+            if (ScriptBlockAnalyzer.IsGeneratedModuleCode(block.Text)) continue;
+            var finding = AssessScriptBlock(block, ownActions);
+            if (finding == null) continue;
+            int count = group.Count();
+            if (count > 1)
+            {
+                finding.Detail("Ausführungen", $"{count}× – " + string.Join(", ", group.Select(b => b.When.ToString("g")).Take(10)) + (count > 10 ? " …" : ""));
+                finding.Description += $" Inhaltsgleich {count}-mal ausgeführt (wiederkehrendes Skript eines Programms?).";
+            }
+            ctx.Add(finding);
+            if (++reported >= 20) break;
+        }
+    }
+
+    private Finding? AssessScriptBlock(ScriptBlock block, List<Actions.UndoEntry> ownActions)
+    {
+        var defenderCalls = ScriptBlockAnalyzer.FindDefenderCalls(block.Text);
+        var weakening = defenderCalls.Where(c => c.WeakensProtection).ToList();
+        var improving = defenderCalls.Where(c => !c.WeakensProtection).ToList();
+
+        // Defender-Regel ueber Schluesselwoerter ersetzt durch echte Aufrufanalyse (siehe oben)
+        var rules = CommandLineRules.Match(block.Text).Where(r => r.Id != "PS_DEFENDER_OFF").ToList();
+
+        // Zeitlich passende tatsaechliche Defender-Aenderungen (Ereignis 5007, +-60 s)
+        var changes = _defenderChanges.Where(c => Math.Abs((c.When - block.When).TotalSeconds) <= 60).ToList();
+
+        // Von ScanMe selbst auf Klick des Nutzers ausgefuehrt?
+        bool byScanMe = ownActions.Any(a => Math.Abs((a.When - block.When).TotalMinutes) <= 2
+                                            && block.Text.Contains(a.Target, StringComparison.OrdinalIgnoreCase));
+
+        if (weakening.Count == 0 && rules.Count == 0 && improving.Count == 0) return null; // nur Schluesselwoerter, keine Wirkung
+
+        string user = block.UserSid != null ? RegistryUtil.SidToUser(block.UserSid) : "unbekannt";
+        var cmdlets = ScriptBlockAnalyzer.CalledCmdlets(block.Text);
+        // Titel ohne Zeitstempel bei Wiederholungen: Fingerprint bleibt stabil, "Ignorieren" wirkt auf genau dieses Skript.
+        string summary = cmdlets.Count > 0 ? string.Join(", ", cmdlets.Take(3)) : TextUtil.Truncate(block.Text.Trim(), 60);
+        var f = NewFinding($"PowerShell-Skript: {summary}", FindingCategory.Malware);
+
+        if (weakening.Count > 0)
+            f.AddIndicator("PS_DEF_WEAKEN", "Schwächt Microsoft Defender: " + string.Join("; ", weakening.Take(3).Select(c => c.Describe())), byScanMe ? 0 : 50);
+        foreach (var rule in rules)
+            f.AddIndicator("PS_" + rule.Id, rule.Text, Math.Min(rule.Weight, 45));
+        if (improving.Count > 0)
+            f.AddIndicator("PS_DEF_IMPROVE", "Verbessert den Schutz: " + string.Join("; ", improving.Take(3).Select(c => c.Describe())), -30);
+        if (byScanMe)
+            f.AddIndicator("PS_BY_SCANME", "Von ScanMe auf Ihren Klick ausgeführt (siehe Quarantäne & Verlauf)", -40);
+        // Die PowerShell-Warnstufe beruht auf denselben Schluesselwoertern – sie zaehlt nur, wenn sonst nichts erklaert, warum.
+        f.AddIndicator("PS_FLAGGED", "Von PowerShell als verdächtig markiert", rules.Count == 0 && weakening.Count == 0 ? 15 : 0);
+
+        // --- Texte ---
+        string what = weakening.Count > 0 ? "schwächt den Virenschutz"
+            : improving.Count > 0 && rules.Count == 0 ? "hat den Virenschutz verbessert"
+            : "enthält verdächtige Befehle";
+        f.Description = $"Ein PowerShell-Skriptblock von {user} {what}. Aufgerufen: {(cmdlets.Count > 0 ? string.Join(", ", cmdlets) : "–")}." +
+                        (changes.Count > 0 ? $" Tatsächliche Defender-Änderung: {string.Join("; ", changes.Take(3).Select(c => c.Describe()))}." : "");
+        f.Explanation = byScanMe
+            ? "Diesen Befehl hat ScanMe selbst ausgeführt, als Sie eine Aktion bestätigt haben. Kein Grund zur Sorge."
+            : improving.Count > 0 && weakening.Count == 0 && rules.Count == 0
+                ? "Das Skript hat Ausnahmen entfernt bzw. Schutzfunktionen eingeschaltet. PowerShell markiert solche Befehle trotzdem als 'verdächtig', weil es nur auf Schlüsselwörter achtet."
+                : "PowerShell protokolliert Skripte mit sicherheitsrelevanten Befehlen. Entscheidend ist, was tatsächlich ausgeführt wurde – siehe Indikatoren und Skriptblock in den Details.";
+        f.Recommendation = byScanMe || (improving.Count > 0 && weakening.Count == 0 && rules.Count == 0)
+            ? "Keine Aktion nötig."
+            : weakening.Count > 0
+                ? $"Prüfen, ob Sie das selbst waren. Aktuelle Ausnahmen: Windows-Sicherheit → Viren- & Bedrohungsschutz → Einstellungen verwalten → Ausschlüsse (oder in ScanMe unter Funde → 'Defender-Ausnahme'). " +
+                  "Unbedenklich, wenn Sie bzw. ein bekanntes Programm die Ausnahme angelegt haben; sonst Ausnahme entfernen und vollständigen Scan starten."
+                : "Unbedenklich, wenn das Skript von einem bekannten Programm stammt (siehe 'Skriptpfad' und 'Prozess'). Bedenklich sind Skripte ohne Pfad, " +
+                  "die Inhalte aus dem Internet laden und direkt ausführen, Base64 dekodieren oder Speicher manipulieren – dann vollständigen Scan starten und Passwörter ändern.";
+
+        f.Detail("Zeitpunkt", block.When.ToString("G"))
+         .Detail("Benutzer", user)
+         .Detail("Prozess-ID", block.ProcessId?.ToString())
+         .Detail("Skriptpfad", string.IsNullOrEmpty(block.Path) ? "(interaktiv / ohne Datei)" : block.Path)
+         .Detail("ScriptBlock-ID", $"{block.Id} ({block.Parts} Teil{(block.Parts == 1 ? "" : "e")})")
+         .Detail("Defender-Änderungen (±60 s)", changes.Count > 0 ? string.Join(Environment.NewLine, changes.Select(c => c.Describe())) : "keine")
+         .Detail("Skriptblock", TextUtil.Truncate(block.Text.Replace("\r\n", "\n").Trim(), 6000));
+        return f;
     }
 }

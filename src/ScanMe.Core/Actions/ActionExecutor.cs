@@ -170,10 +170,43 @@ public static class ActionExecutor
 
     private static ActionResult RemoveExclusion(string value, string parameter)
     {
-        var (code, output) = RunTool("powershell.exe", $"-NoProfile -NonInteractive -Command \"Remove-MpPreference -{parameter} '{value.Replace("'", "''")}'\"");
-        if (code != 0) return ActionResult.Fail("Ausnahme konnte nicht entfernt werden (Manipulationsschutz aktiv?): " + output.Trim());
+        // Direkt ueber die Defender-WMI-Schnittstelle statt PowerShell: kein Skriptblock-Protokoll, das
+        // spaeter faelschlich als "verdaechtiges Skript" erscheint, und keine Kommandozeilen-Quoting-Probleme.
+        string? error = InvokeMpPreference("Remove", parameter, value);
+        if (error != null) return ActionResult.Fail("Ausnahme konnte nicht entfernt werden (Manipulationsschutz aktiv?): " + error);
+        if (ExclusionExists(parameter, value))
+            return ActionResult.Fail("Defender hat die Ausnahme nicht entfernt (evtl. per Gruppenrichtlinie gesetzt oder Manipulationsschutz aktiv).");
         UndoJournal.Add(new UndoEntry { Kind = UndoKind.DefenderExclusion, Target = value, Name = parameter, Description = $"Defender-Ausnahme '{value}' entfernt" });
-        return ActionResult.Ok("Defender-Ausnahme entfernt.");
+        return ActionResult.Ok("Defender-Ausnahme entfernt und überprüft.");
+    }
+
+    /// <summary>Ruft MSFT_MpPreference.Add/Remove auf. Rueckgabe: Fehlermeldung oder null.</summary>
+    internal static string? InvokeMpPreference(string method, string parameter, string value)
+    {
+        try
+        {
+            using var cls = new ManagementClass(@"root\Microsoft\Windows\Defender", "MSFT_MpPreference", null);
+            using var input = cls.GetMethodParameters(method);
+            input[parameter] = new[] { value };
+            using var output = cls.InvokeMethod(method, input, null);
+            uint rc = output?["ReturnValue"] is { } r ? Convert.ToUInt32(r) : 0;
+            return rc == 0 ? null : $"Fehlercode {rc}";
+        }
+        catch (ManagementException ex) { return ex.Message; }
+        catch (UnauthorizedAccessException) { return "Zugriff verweigert – Adminrechte erforderlich."; }
+    }
+
+    private static bool ExclusionExists(string parameter, string value)
+    {
+        string sub = parameter switch
+        {
+            "ExclusionPath" => "Paths",
+            "ExclusionExtension" => "Extensions",
+            "ExclusionProcess" => "Processes",
+            _ => "IpAddresses",
+        };
+        return RegistryUtil.Values($@"HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions\{sub}")
+            .Any(v => v.Name.Equals(value, StringComparison.OrdinalIgnoreCase));
     }
 
     private const string DefaultHosts =

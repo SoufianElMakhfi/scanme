@@ -123,7 +123,8 @@ public static class UndoJournal
                         k?.SetValue("Start", int.Parse(e.PreviousValue ?? "3"), RegistryValueKind.DWord);
                     break;
                 case UndoKind.DefenderExclusion:
-                    ActionExecutor.RunTool("powershell.exe", $"-NoProfile -NonInteractive -Command \"Add-MpPreference -{e.Name} '{e.Target.Replace("'", "''")}'\"");
+                    if (ActionExecutor.InvokeMpPreference("Add", e.Name!, e.Target) is { } error)
+                        return ActionResult.Fail("Ausnahme konnte nicht wiederhergestellt werden: " + error);
                     break;
                 case UndoKind.HostsFile:
                     File.Copy(e.PreviousValue!, e.Target, overwrite: true);
