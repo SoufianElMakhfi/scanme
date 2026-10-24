@@ -25,9 +25,15 @@ Läuft auf **Windows 10 (ab 1809) und Windows 11**, x64 und ARM64.
 
 ## Updates
 
-- **Programm:** ScanMe prüft beim Start, ob es eine neuere Version gibt, und zeigt dann in der Seitenleiste
-  einen Hinweis mit Download-Link. Ersetze einfach die alte `ScanMe.exe` – Quarantäne, Verlauf, Ignorierliste
-  und Einstellungen liegen in `C:\ProgramData\ScanMe` und bleiben erhalten.
+- **Programm:** ScanMe prüft beim Start, ob es eine neuere Version gibt, und bietet sie an. Ein Klick lädt das
+  Update, prüft es, tauscht die Dateien aus und startet ScanMe neu. Quarantäne, Verlauf, Ignorierliste und
+  Einstellungen liegen in `C:\ProgramData\ScanMe` und bleiben erhalten. Per Kommandozeile: `scanme-cli --self-update`.
+  - Geprüft wird vor dem Austausch: die **SHA256-Prüfsumme** aus dem Release, dass die Version **neuer** ist
+    (kein Zurückspielen alter Versionen) und – sobald ScanMe signiert ist – dass die neue Version **vom selben
+    Herausgeber signiert** ist. Erst die Signatur schützt auch vor einem übernommenen GitHub-Konto.
+  - Bei einem Fehler wird alles zurückgerollt. Bewusst **kein Zwangs-Update**: ScanMe muss auch offline
+    funktionieren, etwa wenn der PC nach einem Befall vom Netz getrennt ist.
+  - Hat eine Version einen bekannten schweren Fehler, warnt ScanMe über das signierte Regelpaket deutlich davor.
 - **Erkennungsregeln:** Vor jedem Scan lädt ScanMe neue Regeln aus [`rules/rules.json`](rules/rules.json).
   Sie werden **nur übernommen, wenn ihre digitale Signatur (ECDSA P-256) gültig ist** – selbst ein
   übernommenes GitHub-Konto könnte keine manipulierten Regeln verteilen. Online-Regeln können Erkennungen

@@ -28,6 +28,16 @@ public static class RuleStore
     public static IReadOnlyDictionary<string, string> VulnerableDrivers { get; private set; } = new Dictionary<string, string>();
     public static IReadOnlyList<KTools.Tool> KnownTools { get; private set; } = [];
 
+    /// <summary>Warnung aus dem signierten Regelpaket fuer diese (fehlerhafte) Programmversion, sonst null.</summary>
+    public static string? AppWarning { get; private set; }
+
+    public static void UpdateAppWarning(RuleSet set)
+    {
+        AppWarning = set.WarnBelowAppVersion != null && System.Version.TryParse(set.WarnBelowAppVersion, out var v) && OnlineUpdates.CurrentVersion < v
+            ? set.WarnText ?? $"Diese ScanMe-Version hat einen bekannten Fehler. Bitte auf Version {v} oder neuer aktualisieren."
+            : null;
+    }
+
     static RuleStore() => LoadCached();
 
     /// <summary>Laedt die lokal gespeicherte Regeldatei – nur wenn ihre Signatur gueltig ist.</summary>
@@ -87,6 +97,7 @@ public static class RuleStore
                 t.ProcessNames.ToArray(), t.Note))
             .ToList();
 
+        UpdateAppWarning(set);
         lock (Sync)
         {
             CommandLineRules = cmd;

@@ -11,6 +11,10 @@ public sealed class RuleSet
     [JsonPropertyName("version")] public int Version { get; set; }
     [JsonPropertyName("minAppVersion")] public string? MinAppVersion { get; set; }
     [JsonPropertyName("published")] public string? Published { get; set; }
+
+    /// <summary>Notbremse: Versionen unter dieser haben einen bekannten schweren Fehler – deutliche Warnung (kein Zwang).</summary>
+    [JsonPropertyName("warnBelowAppVersion")] public string? WarnBelowAppVersion { get; set; }
+    [JsonPropertyName("warnText")] public string? WarnText { get; set; }
     [JsonPropertyName("commandLineRules")] public List<CommandLineRuleDto> CommandLineRules { get; set; } = new();
     [JsonPropertyName("contentSignatures")] public List<ContentSignatureDto> ContentSignatures { get; set; } = new();
     [JsonPropertyName("vulnerableSoftware")] public List<VulnerableSoftwareDto> VulnerableSoftware { get; set; } = new();

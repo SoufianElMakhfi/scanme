@@ -4,7 +4,9 @@ using System.Text.Json;
 
 namespace ScanMe.Core.Updates;
 
-public sealed record UpdateInfo(Version Latest, string Url, string? Notes);
+/// <param name="PackageUrl">Release-ZIP fuer diese Architektur (fuer das Ein-Klick-Update), sonst null.</param>
+/// <param name="ChecksumsUrl">SHA256SUMS.txt aus demselben Release.</param>
+public sealed record UpdateInfo(Version Latest, string Url, string? Notes, string? PackageUrl = null, string? ChecksumsUrl = null);
 
 /// <summary>
 /// Online-Funktionen: Programmversion pruefen und signierte Regel-Updates laden.
@@ -41,7 +43,11 @@ public static class OnlineUpdates
             if (latest <= new Version(CurrentVersion.Major, CurrentVersion.Minor, Math.Max(0, CurrentVersion.Build))) return null;
             string url = doc.RootElement.TryGetProperty("html_url", out var u) ? u.GetString() ?? "" : $"https://github.com/{Repository}/releases";
             string? notes = doc.RootElement.TryGetProperty("body", out var b) ? b.GetString() : null;
-            return new UpdateInfo(latest, url, notes);
+            string? Asset(string name) => doc.RootElement.TryGetProperty("assets", out var assets)
+                ? assets.EnumerateArray().Where(a => a.GetProperty("name").GetString() == name)
+                    .Select(a => a.GetProperty("browser_download_url").GetString()).FirstOrDefault()
+                : null;
+            return new UpdateInfo(latest, url, notes, Asset(AppUpdater.PackageName), Asset("SHA256SUMS.txt"));
         }
         catch
         {
@@ -63,6 +69,7 @@ public static class OnlineUpdates
                 return "Regel-Update abgelehnt: ungültige Signatur.";
 
             var set = RuleStore.Parse(data);
+            RuleStore.UpdateAppWarning(set); // auch wenn die Regeln selbst fuer diese Version zu neu sind
             if (set.Version <= RuleStore.Version)
                 return $"Regeln aktuell (Version {RuleStore.Version}).";
             if (set.MinAppVersion != null && Version.TryParse(set.MinAppVersion, out var min) && CurrentVersion < min)

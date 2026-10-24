@@ -36,6 +36,20 @@ public partial class MainWindow : Window
         _tray = new TrayIcon(this, _vm);
         if (_vm.Settings.StartMonitorOnLaunch && !_vm.Monitor.IsRunning) _vm.Monitor.Toggle();
         await _vm.CheckOnlineAsync();
+        OfferUpdate();
+    }
+
+    /// <summary>Deutlicher Hinweis statt Zwang: ScanMe muss auch ohne Update (z. B. offline) nutzbar bleiben.</summary>
+    private void OfferUpdate()
+    {
+        if (_vm.AvailableUpdate is not { } u || _vm.IsScanning) return;
+        string text = $"ScanMe {u.Latest.ToString(3)} ist verfügbar (Sie nutzen {_vm.CurrentVersionText}).\n\n" +
+                      "Neue Versionen enthalten aktuelle Erkennungsregeln und Fehlerbehebungen. " +
+                      (u.PackageUrl != null
+                          ? "Das Update wird geprüft, installiert und ScanMe startet neu – Einstellungen, Quarantäne und Verlauf bleiben erhalten.\n\nJetzt aktualisieren?"
+                          : "Download-Seite jetzt öffnen?");
+        if (MessageBox.Show(text, "ScanMe – Update verfügbar", MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+            _vm.InstallUpdateCommand.Execute(null);
     }
 
     private bool ConfirmDisclaimer()

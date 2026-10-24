@@ -6,6 +6,7 @@ using ScanMe.Core.Models;
 using ScanMe.Core.Scanners;
 
 Console.OutputEncoding = Encoding.UTF8;
+ScanMe.Core.Updates.AppUpdater.CleanupAfterUpdate();
 
 var options = new ScanOptions();
 string? jsonOut = null;
@@ -32,6 +33,7 @@ for (int i = 0; i < args.Length; i++)
                   --all              Auch Info-Funde anzeigen
                   --json <datei>     Ergebnis als JSON speichern
                   --no-defender      Microsoft Defender nicht einbeziehen
+                  --self-update      Auf die neueste Version aktualisieren (geprüft, siehe README)
                 """);
             foreach (var s in ScannerCatalog.CreateAll()) Console.WriteLine($"  {s.Id,-14} {s.Name}");
             return 0;
@@ -104,6 +106,38 @@ if (args.Contains("--baseline-diff"))
     foreach (var c in changes) Console.WriteLine($"  [{c.Kind,-7}] {c.Category}: {c.Key} {(c.After != null ? "= " + c.After : "")}");
     Console.WriteLine($"{changes.Count} Änderung(en).");
     return 0;
+}
+// Selbst-Update: --self-update, zum Testen auch aus einer lokalen Datei: --self-update --from <zip> --sums <SHA256SUMS.txt>
+if (args.Contains("--self-update", StringComparer.OrdinalIgnoreCase))
+{
+    string? Arg(string name) => args.SkipWhile(a => !a.Equals(name, StringComparison.OrdinalIgnoreCase)).Skip(1).FirstOrDefault();
+    try
+    {
+        string staging;
+        if (Arg("--from") is { } zip)
+        {
+            string local = Path.Combine(ScanMe.Core.Updates.AppUpdater.WorkDir, Path.GetFileName(zip));
+            Directory.CreateDirectory(ScanMe.Core.Updates.AppUpdater.WorkDir);
+            if (!Path.GetFullPath(zip).Equals(local, StringComparison.OrdinalIgnoreCase)) File.Copy(zip, local, overwrite: true);
+            ScanMe.Core.Updates.AppUpdater.VerifyChecksum(local, File.ReadAllText(Arg("--sums") ?? throw new ArgumentException("--sums <SHA256SUMS.txt> fehlt.")));
+            staging = ScanMe.Core.Updates.AppUpdater.Extract(local);
+            ScanMe.Core.Updates.AppUpdater.VerifyPackage(staging, ScanMe.Core.Updates.AppUpdater.InstallDir);
+        }
+        else
+        {
+            var update = await ScanMe.Core.Updates.OnlineUpdates.CheckForUpdateAsync();
+            if (update == null) { Console.WriteLine($"ScanMe {ScanMe.Core.Updates.OnlineUpdates.CurrentVersion.ToString(3)} ist aktuell (oder GitHub nicht erreichbar)."); return 0; }
+            staging = await ScanMe.Core.Updates.AppUpdater.DownloadAndVerifyAsync(update, new Progress<string>(Console.WriteLine));
+        }
+        ScanMe.Core.Updates.AppUpdater.Apply(staging, ScanMe.Core.Updates.AppUpdater.InstallDir);
+        Console.WriteLine("Aktualisiert. Die neue Version ist ab dem nächsten Start aktiv.");
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Update fehlgeschlagen, nichts verändert: " + ex.Message);
+        return 1;
+    }
 }
 if (args.Contains("--update-rules"))
 {

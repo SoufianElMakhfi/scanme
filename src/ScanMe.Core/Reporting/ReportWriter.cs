@@ -42,7 +42,10 @@ public static class ReportWriter
             </style></head><body>
             """);
         sb.Append($"<h1>ScanMe – Sicherheitsbericht</h1><div class='muted'>{E(report.MachineName)} · {E(report.OsVersion)} · {report.StartedAt:dd.MM.yyyy HH:mm} · " +
-                  $"{(report.WasElevated ? "mit Adminrechten" : "ohne Adminrechte (eingeschränkt)")}</div>");
+                  $"{(report.WasElevated ? "mit Adminrechten" : "ohne Adminrechte (eingeschränkt)")} · ScanMe {E(report.AppVersion)}</div>");
+        if (report.NewerVersionAvailable != null)
+            sb.Append($"<div class='rec'><b>Hinweis:</b> Erstellt mit einer veralteten Version – ScanMe {E(report.NewerVersionAvailable)} war bereits verfügbar " +
+                      "und erkennt eventuell mehr. Für eine aktuelle Bewertung ScanMe aktualisieren und erneut scannen.</div>");
         sb.Append("<div class='stats'>");
         sb.Append($"<div class='stat'><span class='muted'>Gesundheit</span><b>{report.HealthScore}/100</b></div>");
         foreach (var s in new[] { Severity.Critical, Severity.High, Severity.Medium, Severity.Low })

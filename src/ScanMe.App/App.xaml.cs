@@ -12,6 +12,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandled;
+        ScanMe.Core.Updates.AppUpdater.CleanupAfterUpdate();
         var window = new MainWindow();
         MainWindow = window;
 

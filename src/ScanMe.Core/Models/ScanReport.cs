@@ -19,6 +19,10 @@ public sealed class ScanReport
     public string OsVersion { get; set; } = "";
     public bool WasElevated { get; set; }
     public bool Cancelled { get; set; }
+    public string AppVersion { get; init; } = Updates.OnlineUpdates.CurrentVersion.ToString(3);
+
+    /// <summary>Gesetzt, wenn beim Scan bereits eine neuere ScanMe-Version verfuegbar war.</summary>
+    public string? NewerVersionAvailable { get; set; }
 
     public List<Finding> Findings { get; } = new();
     public List<ScannerResult> ScannerResults { get; } = new();

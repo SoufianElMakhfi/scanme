@@ -55,6 +55,13 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _rulesStatus = RuleStore.Version > 0 ? $"Online-Regeln: Version {RuleStore.Version}" : "Nur eingebaute Regeln";
 
     public string AppVersion { get; } = "Version " + OnlineUpdates.CurrentVersion.ToString(3);
+    public string CurrentVersionText { get; } = OnlineUpdates.CurrentVersion.ToString(3);
+
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(InstallUpdateCommand))] private bool _isUpdating;
+    [ObservableProperty] private string? _updateStatus;
+
+    /// <summary>Warnung aus dem signierten Regelpaket, falls diese Version einen bekannten schweren Fehler hat.</summary>
+    [ObservableProperty] private string? _appWarning = RuleStore.AppWarning;
 
     /// <summary>Beim Start: nach neuer Version fragen und Regeln aktualisieren (nur wenn erlaubt).</summary>
     public async Task CheckOnlineAsync()
@@ -62,6 +69,35 @@ public sealed partial class MainViewModel : ObservableObject
         if (!Settings.OnlineFeatures) return;
         AvailableUpdate = await OnlineUpdates.CheckForUpdateAsync();
         RulesStatus = await OnlineUpdates.UpdateRulesAsync();
+        AppWarning = RuleStore.AppWarning;
+    }
+
+    private bool CanInstallUpdate() => !IsUpdating;
+
+    /// <summary>Ein-Klick-Update: laden, pruefen (Pruefsumme, Herausgeber, Version), austauschen, neu starten.</summary>
+    [RelayCommand(CanExecute = nameof(CanInstallUpdate))]
+    private async Task InstallUpdate()
+    {
+        if (AvailableUpdate is not { } update) return;
+        if (update.PackageUrl == null) { OpenUpdate(); return; }
+        if (IsScanning) { UpdateStatus = "Bitte erst den laufenden Scan abschließen."; return; }
+
+        IsUpdating = true;
+        try
+        {
+            var progress = new Progress<string>(s => UpdateStatus = s);
+            string staging = await AppUpdater.DownloadAndVerifyAsync(update, progress);
+            UpdateStatus = "Installiere …";
+            if (Monitor.IsRunning) Monitor.Toggle();
+            await Task.Run(() => AppUpdater.Apply(staging, AppUpdater.InstallDir));
+            AppUpdater.Restart();
+            System.Windows.Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus = "Update fehlgeschlagen, nichts verändert: " + ex.Message;
+            IsUpdating = false;
+        }
     }
 
     [RelayCommand]
@@ -136,6 +172,7 @@ public sealed partial class MainViewModel : ObservableObject
             }
             var engine = new ScanEngine(ScannerCatalog.CreateAll());
             var report = await engine.RunAsync(Settings.ToScanOptions(profile), progress, _cts.Token);
+            report.NewerVersionAvailable = AvailableUpdate?.Latest.ToString(3);
             LastReport = report;
             Findings.Load(report);
             Timeline.Reload();

@@ -37,15 +37,25 @@
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Bottom">
-                    <Button Margin="0,0,0,10" Padding="10" HorizontalContentAlignment="Left" Command="{Binding OpenUpdateCommand}"
+                    <!-- Notbremse aus dem signierten Regelpaket: bekannte schwere Fehler dieser Version -->
+                    <Border CornerRadius="8" Padding="10" Margin="0,0,0,10" Background="#3A1D22" BorderBrush="{StaticResource CriticalBrush}" BorderThickness="1"
+                            Visibility="{Binding AppWarning, Converter={StaticResource Vis}}">
+                        <StackPanel>
+                            <TextBlock Text="Bitte aktualisieren" FontWeight="SemiBold" Foreground="{StaticResource CriticalBrush}" />
+                            <TextBlock Text="{Binding AppWarning}" FontSize="12" TextWrapping="Wrap" Foreground="#FFB3B6" Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Button Margin="0,0,0,4" Padding="10" HorizontalContentAlignment="Left" Command="{Binding InstallUpdateCommand}"
                             Visibility="{Binding AvailableUpdate, Converter={StaticResource Vis}}" Background="#16233A" BorderBrush="{StaticResource AccentBrush}">
                         <StackPanel>
                             <TextBlock Text="Update verfügbar" FontWeight="SemiBold" Foreground="{StaticResource AccentHoverBrush}" />
                             <TextBlock FontSize="12" TextWrapping="Wrap">
-                                <Run Text="Version " /><Run Text="{Binding AvailableUpdate.Latest, Mode=OneWay}" /><Run Text=" herunterladen" />
+                                <Run Text="Version " /><Run Text="{Binding AvailableUpdate.Latest, Mode=OneWay}" /><Run Text=" – jetzt aktualisieren" />
                             </TextBlock>
                         </StackPanel>
                     </Button>
+                    <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="6,0,6,10"
+                               Visibility="{Binding UpdateStatus, Converter={StaticResource Vis}}" />
                     <Border CornerRadius="8" Padding="10" Background="{StaticResource Surface2Brush}"
                             Visibility="{Binding IsElevated, Converter={StaticResource InvVis}}" Margin="0,0,0,10">
                         <TextBlock Style="{StaticResource Body}" FontSize="12" Foreground="{StaticResource MediumBrush}"
