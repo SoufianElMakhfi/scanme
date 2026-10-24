@@ -86,6 +86,25 @@ if (args.Contains("--hardening"))
     foreach (var h in hits.Take(15)) Console.WriteLine($"  {h.When:g} {(h.Blocked ? "BLOCKIERT" : "wäre blockiert")}: {h.Rule} – {h.Process} → {h.Target}");
     return 0;
 }
+if (args.Contains("--baseline-save"))
+{
+    var snap = ScanMe.Core.Baseline.BaselineService.Capture();
+    ScanMe.Core.Baseline.BaselineService.Save(snap);
+    Console.WriteLine($"Sauberer Zustand gespeichert: {ScanMe.Core.Baseline.BaselineService.FilePath}");
+    foreach (var c in snap.Categories) Console.WriteLine($"  {c.Key,-22} {c.Value.Count,5} Einträge");
+    Console.WriteLine($"Prüfsumme: {snap.Checksum}");
+    return 0;
+}
+if (args.Contains("--baseline-diff"))
+{
+    var b = ScanMe.Core.Baseline.BaselineService.Load();
+    if (b == null) { Console.WriteLine("Kein sauberer Zustand gespeichert (--baseline-save)."); return 1; }
+    Console.WriteLine(ScanMe.Core.Baseline.BaselineService.IsIntact(b) ? $"Baseline vom {b.CreatedAt:g} – Prüfsumme ok" : "ACHTUNG: Baseline-Datei wurde verändert!");
+    var changes = ScanMe.Core.Baseline.BaselineService.Compare(b, ScanMe.Core.Baseline.BaselineService.Capture());
+    foreach (var c in changes) Console.WriteLine($"  [{c.Kind,-7}] {c.Category}: {c.Key} {(c.After != null ? "= " + c.After : "")}");
+    Console.WriteLine($"{changes.Count} Änderung(en).");
+    return 0;
+}
 if (args.Contains("--update-rules"))
 {
     Console.WriteLine(await ScanMe.Core.Updates.OnlineUpdates.UpdateRulesAsync());

@@ -72,6 +72,12 @@ public static class PlainLanguage
             f.Questions.Add("Wurden Sie kurz davor auf einer Webseite aufgefordert, Tasten wie Win+R und Strg+V zu drücken („Ich bin kein Roboter“)? Dann war es ein Angriff.");
             return;
         }
+        if (f.ScannerId == "baseline" && Has(f, "NEW_SINCE_BASELINE"))
+        {
+            string since = f.Details.GetValueOrDefault("Seit") ?? "dem sauberen Zustand";
+            f.Questions.Add($"Haben Sie seit {since} selbst etwas installiert, eingerichtet oder aktualisiert, zu dem „{Name(f)}“ gehören könnte?");
+            return;
+        }
         if (Has(f, "REMOTE_TOOL") || Has(f, "TOOL_REMOTEACCESS"))
         {
             f.Questions.Add($"Haben Sie {name} selbst installiert, weil Sie es nutzen – oder hat Sie jemand am Telefon, per Nachricht oder über eine Webseite dazu aufgefordert?");

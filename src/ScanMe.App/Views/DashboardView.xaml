@@ -93,6 +93,21 @@
                 </Border>
             </UniformGrid>
 
+            <!-- Sauberer Zustand (Baseline) -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0" Padding="18,14">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Auf USB sichern" Command="{Binding ExportBaselineCommand}" Margin="0,0,8,0" />
+                        <Button Content="Zustand als sauber merken" Command="{Binding SaveBaselineCommand}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,16,0">
+                        <TextBlock Text="Sauberer Zustand (Baseline)" Style="{StaticResource H2}" />
+                        <TextBlock Text="{Binding BaselineText}" Style="{StaticResource Body}" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0" />
+                        <TextBlock Text="{Binding BaselineMessage}" Style="{StaticResource Body}" Margin="0,4,0,0" Visibility="{Binding BaselineMessage, Converter={StaticResource Vis}}" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
             <!-- Wichtigste Funde -->
             <Grid Margin="0,16,0,0" Visibility="{Binding HasReport, Converter={StaticResource Vis}}">
                 <Grid.ColumnDefinitions>

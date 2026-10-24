@@ -8,6 +8,7 @@ public static class ScannerCatalog
     public static IReadOnlyList<IScanner> CreateAll() =>
     [
         new ProcessScanner(),
+        new BaselineScanner(),
         new PersistenceScanner(),
         new NetworkScanner(),
         new SecurityConfigScanner(),

@@ -59,4 +59,50 @@ public sealed partial class DashboardViewModel : ObservableObject
 
     [RelayCommand]
     private void Open(FindingItemViewModel item) => _main.ShowFinding(item);
+
+    // ------------------------------------------------------------------
+    // Sauberer Zustand (Baseline)
+    // ------------------------------------------------------------------
+
+    [ObservableProperty] private string _baselineText = BaselineStatus();
+    [ObservableProperty] private string? _baselineMessage;
+
+    private static string BaselineStatus()
+    {
+        var b = Core.Baseline.BaselineService.Load();
+        if (b == null) return "Noch nicht gespeichert. Am besten direkt nach einer Windows-Neuinstallation speichern – danach meldet ScanMe jede Veränderung.";
+        return Core.Baseline.BaselineService.IsIntact(b)
+            ? $"Gespeichert am {b.CreatedAt:g}. Jeder Scan zeigt zuerst, was sich seitdem verändert hat."
+            : "⚠ Die gespeicherte Datei wurde nachträglich verändert – bitte mit Ihrer USB-Sicherung vergleichen.";
+    }
+
+    [RelayCommand]
+    private async Task SaveBaseline()
+    {
+        if (!_main.IsElevated)
+        {
+            BaselineMessage = "✖ Bitte ScanMe als Administrator starten – sonst fehlen Aufgaben und Defender-Ausnahmen im sauberen Zustand.";
+            return;
+        }
+        if (System.Windows.MessageBox.Show(
+                "Den aktuellen Zustand als SAUBER speichern?\n\n" +
+                "Nur tun, wenn der PC nachweislich sauber ist – ideal direkt nach einer Windows-Neuinstallation und den ersten eigenen Programmen.\n\n" +
+                "Alles, was jetzt vorhanden ist, gilt danach als bekannt und wird nicht mehr als Änderung gemeldet.",
+                "ScanMe – Sauberer Zustand", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes)
+            return;
+        var snap = await Task.Run(Core.Baseline.BaselineService.Capture);
+        Core.Baseline.BaselineService.Save(snap);
+        BaselineText = BaselineStatus();
+        BaselineMessage = $"✔ Gespeichert ({snap.Categories.Sum(c => c.Value.Count)} Einträge). Tipp: Mit „Auf USB sichern“ eine Kopie außerhalb des PCs ablegen.";
+    }
+
+    [RelayCommand]
+    private void ExportBaseline()
+    {
+        if (!File.Exists(Core.Baseline.BaselineService.FilePath)) { BaselineMessage = "✖ Noch kein sauberer Zustand gespeichert."; return; }
+        var dlg = new Microsoft.Win32.SaveFileDialog { FileName = $"ScanMe-Baseline-{Environment.MachineName}-{DateTime.Now:yyyy-MM-dd}.json", Filter = "Baseline (*.json)|*.json" };
+        if (dlg.ShowDialog() != true) return;
+        File.Copy(Core.Baseline.BaselineService.FilePath, dlg.FileName, overwrite: true);
+        BaselineMessage = $"✔ Gesichert: {dlg.FileName}. Bewahren Sie die Kopie getrennt vom PC auf (z. B. USB-Stick).";
+    }
 }
