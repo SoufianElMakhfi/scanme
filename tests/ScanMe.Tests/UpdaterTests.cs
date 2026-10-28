@@ -85,12 +85,40 @@ public sealed class UpdaterTests : IDisposable
         Write(Path.Combine(Staging, "ScanMe.exe"), "neu");
         AppUpdater.Apply(Staging, Install, Work);
 
-        AppUpdater.CleanupAfterUpdate(Work);
+        AppUpdater.CleanupAfterUpdate(Work, Install);
 
         Assert.False(File.Exists(Path.Combine(Install, "ScanMe.exe.old")));
         Assert.True(File.Exists(Path.Combine(Install, "fremde-sicherung.old")));
         Assert.False(File.Exists(Path.Combine(Work, "cleanup.txt")));
     }
+
+    [Fact]
+    public void Cleanup_IgnoresInjectedPaths()
+    {
+        // Die Aufraeumliste wird mit Adminrechten abgearbeitet: Untergeschobene Eintraege duerfen nichts loeschen.
+        string outside = Path.Combine(_root, "wichtig.dll");
+        string notBackup = Path.Combine(Install, "ScanMe.exe");
+        string traversal = Path.Combine(Install, "..", "wichtig.old");
+        Write(outside, "x");
+        Write(notBackup, "x");
+        Write(Path.Combine(_root, "wichtig.old"), "x");
+        Write(Path.Combine(Work, "cleanup.txt"), string.Join("\n", outside, notBackup, traversal, "relativ.old"));
+
+        AppUpdater.CleanupAfterUpdate(Work, Install);
+
+        Assert.True(File.Exists(outside));
+        Assert.True(File.Exists(notBackup));
+        Assert.True(File.Exists(Path.Combine(_root, "wichtig.old")));
+    }
+
+    [Theory]
+    [InlineData(@"ScanMe.exe.old", true)]
+    [InlineData(@"Data\loldrivers.json.old3", true)]
+    [InlineData(@"ScanMe.exe", false)]
+    [InlineData(@"ScanMe.exe.older", false)]
+    [InlineData(@"..\ScanMe.exe.old", false)]
+    public void OwnBackup_OnlyOldFilesInsideInstallDir(string relative, bool expected) =>
+        Assert.Equal(expected, AppUpdater.IsOwnBackup(Path.Combine(Install, relative), Install));
 
     [Fact]
     public void Apply_RenamesFileThatIsInUse()

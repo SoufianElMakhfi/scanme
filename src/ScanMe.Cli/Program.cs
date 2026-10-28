@@ -6,6 +6,21 @@ using ScanMe.Core.Models;
 using ScanMe.Core.Scanners;
 
 Console.OutputEncoding = Encoding.UTF8;
+
+// Exit-Codes – fuer Skripte und Softwareverteilung. Ein unvollstaendiger Scan meldet nie "sauber".
+const int ExitHigh = 1, ExitCritical = 2, ExitIncomplete = 3, ExitUsage = 4;
+
+try
+{
+    _ = ScanMe.Core.Actions.AppPaths.DataDir;
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine("Datenordner nicht nutzbar, ScanMe startet nicht: " + ex.Message);
+    return ExitIncomplete;
+}
+foreach (var p in ScanMe.Core.Actions.AppPaths.SetAside)
+    Console.Error.WriteLine($"Warnung: Nicht von einem Administrator angelegt, daher beiseitegelegt und nicht verwendet: {p}");
 ScanMe.Core.Updates.AppUpdater.CleanupAfterUpdate();
 
 var options = new ScanOptions();
@@ -22,7 +37,7 @@ for (int i = 0; i < args.Length; i++)
         case "--all": minSeverity = Severity.Info; break;
         case "--no-defender": options.UseDefender = false; break;
         case "--only" when i + 1 < args.Length:
-            foreach (var s in args[++i].Split(',')) only.Add(s.Trim());
+            foreach (var s in args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) only.Add(s);
             break;
         case "--help" or "-h" or "/?":
             Console.WriteLine("""
@@ -34,9 +49,25 @@ for (int i = 0; i < args.Length; i++)
                   --json <datei>     Ergebnis als JSON speichern
                   --no-defender      Microsoft Defender nicht einbeziehen
                   --self-update      Auf die neueste Version aktualisieren (geprüft, siehe README)
+
+                Exit-Code: 0 = keine hohen/kritischen Funde · 1 = hohe Funde · 2 = kritische Funde
+                           3 = Scan unvollständig (abgebrochen oder Scannerfehler) · 4 = falscher Aufruf
                 """);
             foreach (var s in ScannerCatalog.CreateAll()) Console.WriteLine($"  {s.Id,-14} {s.Name}");
             return 0;
+        // Werden weiter unten ausgewertet, teils mit Wert.
+        case "--rules-keygen" or "--hardening" or "--baseline-save" or "--baseline-diff" or "--self-update" or "--update-rules": break;
+        case "--from" or "--sums" or "--rules-verify" when i + 1 < args.Length: i++; break;
+        case "--rules-sign" when i + 1 < args.Length:
+            i++;
+            if (i + 1 < args.Length && !args[i + 1].StartsWith('-')) i++; // optional: Schluesseldatei
+            break;
+        case "--monitor":
+            if (i + 1 < args.Length && int.TryParse(args[i + 1], out _)) i++;
+            break;
+        default:
+            Console.Error.WriteLine($"Unbekannte Option oder fehlender Wert: {args[i]} (--help zeigt alle Optionen)");
+            return ExitUsage;
     }
 }
 
@@ -166,7 +197,14 @@ if (args.Contains("--monitor", StringComparer.OrdinalIgnoreCase))
     return 0;
 }
 
-var scanners = ScannerCatalog.CreateAll().Where(s => only.Count == 0 || only.Contains(s.Id)).ToList();
+var catalog = ScannerCatalog.CreateAll();
+var unknownIds = only.Where(id => !catalog.Any(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase))).ToList();
+if (unknownIds.Count > 0)
+{
+    Console.Error.WriteLine($"Unbekannte Scanner-ID: {string.Join(", ", unknownIds)} (--help zeigt alle IDs)");
+    return ExitUsage;
+}
+var scanners = catalog.Where(s => only.Count == 0 || only.Contains(s.Id)).ToList();
 var engine = new ScanEngine(scanners);
 
 var progress = new Progress<ScanProgress>(p =>
@@ -220,4 +258,13 @@ if (jsonOut != null)
     Console.WriteLine($"\nJSON gespeichert: {jsonOut}");
 }
 
-return report.Count(Severity.Critical) > 0 ? 2 : report.Count(Severity.High) > 0 ? 1 : 0;
+bool incomplete = report.Cancelled || report.ScannerResults.Any(r => r.Error != null);
+if (incomplete)
+{
+    Console.ForegroundColor = ConsoleColor.Yellow;
+    Console.WriteLine($"\nACHTUNG: Scan unvollständig ({(report.Cancelled ? "abgebrochen" : "Scannerfehler, siehe oben")}) – das Ergebnis ist keine Entwarnung.");
+    Console.ResetColor();
+}
+
+// Funde gehen vor; ohne hohe/kritische Funde zeigt 3 an, dass nicht alles geprueft wurde.
+return report.Count(Severity.Critical) > 0 ? ExitCritical : report.Count(Severity.High) > 0 ? ExitHigh : incomplete ? ExitIncomplete : 0;

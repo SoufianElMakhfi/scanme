@@ -95,6 +95,9 @@ Alles Geänderte steht unter **Quarantäne & Verlauf** und lässt sich dort rüc
 - kein Beenden kritischer Prozesse (`lsass`, `csrss`, `wininit`, `services`, `smss`, `svchost` …), sofern es die echten sind
 - kein Deaktivieren von Windows-Kerndiensten (RPC, Defender, Firewall, Event Log …)
 - LSA-/Winlogon-Werte werden nie gelöscht, nur gezielt auf den Standard gesetzt
+- der Datenordner `C:\ProgramData\ScanMe` ist nur für SYSTEM und Administratoren beschreibbar. Einträge, die nicht
+  von ihnen stammen (oder Links sind), legt ScanMe beim Start beiseite und verwendet sie nie. Ohne Adminrechte
+  nutzt ScanMe einen eigenen Ordner pro Benutzer (`%LOCALAPPDATA%\ScanMe`).
 
 ## Kommandozeile
 
@@ -106,7 +109,8 @@ scanme-cli.exe --json bericht.json
 scanme-cli.exe --monitor 300       # 5 Minuten Echtzeitüberwachung
 scanme-cli.exe --help              # alle Scanner-IDs
 ```
-Exit-Code: `2` = kritische Funde, `1` = hohe Funde, `0` = sonst.
+Exit-Code: `2` = kritische Funde, `1` = hohe Funde, `3` = Scan unvollständig (abgebrochen oder Scannerfehler),
+`4` = falscher Aufruf (unbekannte Option oder Scanner-ID), `0` = sonst. Ein unvollständiger Scan liefert nie `0`.
 
 ## Selbst bauen
 

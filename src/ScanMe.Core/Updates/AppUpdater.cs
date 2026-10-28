@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using ScanMe.Core.Actions;
 using ScanMe.Core.Trust;
 
@@ -155,15 +156,29 @@ public static class AppUpdater
         }
     }
 
+    /// <summary>
+    /// Nur Sicherungen, wie <see cref="Apply"/> sie anlegt: "*.old", "*.old1" … im Programmordner. Die Aufraeumliste wird mit
+    /// Adminrechten abgearbeitet – stuende dort ein fremder Pfad, wuerde ScanMe sonst beliebige Dateien loeschen.
+    /// </summary>
+    public static bool IsOwnBackup(string path, string installDir)
+    {
+        if (!Path.IsPathFullyQualified(path)) return false;
+        string dir = Path.TrimEndingDirectorySeparator(Path.GetFullPath(installDir)) + Path.DirectorySeparatorChar;
+        string full = Path.GetFullPath(path);
+        return full.StartsWith(dir, StringComparison.OrdinalIgnoreCase)
+            && Regex.IsMatch(Path.GetExtension(full), @"^\.old\d*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
     /// <summary>Beim Start: alte Dateien vom letzten Update loeschen. Noch gesperrte bleiben fuer den naechsten Start.</summary>
-    public static void CleanupAfterUpdate(string? workDir = null)
+    /// <param name="installDir">Programmordner; Standard <see cref="InstallDir"/> (Tests nutzen einen eigenen Ordner).</param>
+    public static void CleanupAfterUpdate(string? workDir = null, string? installDir = null)
     {
         try
         {
             string list = CleanupListIn(workDir ?? WorkDir);
             if (!File.Exists(list)) return;
             var remaining = File.ReadAllLines(list)
-                .Where(p => p.Length > 0 && File.Exists(p))
+                .Where(p => IsOwnBackup(p, installDir ?? InstallDir) && File.Exists(p))
                 .Where(p => { try { File.Delete(p); return false; } catch { return true; } })
                 .ToList();
             if (remaining.Count == 0) File.Delete(list); else File.WriteAllLines(list, remaining);

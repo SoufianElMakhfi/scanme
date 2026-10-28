@@ -3,6 +3,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using ScanMe.App.ViewModels;
+using ScanMe.Core.Actions;
 
 namespace ScanMe.App;
 
@@ -12,6 +13,23 @@ public partial class App : Application
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandled;
+        try
+        {
+            _ = AppPaths.DataDir;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("ScanMe kann seinen Datenordner nicht absichern und startet deshalb nicht:\n\n" + ex.Message,
+                "ScanMe", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+            return;
+        }
+        if (AppPaths.SetAside.Count > 0 && Array.IndexOf(e.Args, "--render") < 0)
+            MessageBox.Show("Im Datenordner von ScanMe lagen Einträge, die nicht von einem Administrator angelegt wurden – " +
+                            "etwa von einer früheren Version ohne Adminrechte, möglicherweise aber auch von Schadsoftware. " +
+                            "Sie werden nicht verwendet und wurden beiseitegelegt:\n\n" + string.Join("\n", AppPaths.SetAside.Take(10)) +
+                            (AppPaths.SetAside.Count > 10 ? $"\n… und {AppPaths.SetAside.Count - 10} weitere" : ""),
+                "ScanMe", MessageBoxButton.OK, MessageBoxImage.Warning);
         ScanMe.Core.Updates.AppUpdater.CleanupAfterUpdate();
         var window = new MainWindow();
         MainWindow = window;

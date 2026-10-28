@@ -38,10 +38,13 @@ public static class Quarantine
         var items = new List<QuarantineItem>();
         foreach (var dir in Directory.GetDirectories(AppPaths.QuarantineDir))
         {
+            if (!IsValidId(Path.GetFileName(dir))) continue;
             try
             {
                 var item = JsonSerializer.Deserialize<QuarantineItem>(File.ReadAllText(Path.Combine(dir, "manifest.json")));
-                if (item != null) items.Add(item);
+                if (item == null) continue;
+                item.Id = Path.GetFileName(dir); // nie die Id aus dem Manifest – sie wird spaeter zum Pfad
+                items.Add(item);
             }
             catch { }
         }
@@ -102,7 +105,7 @@ public static class Quarantine
 
     public static ActionResult Restore(string id)
     {
-        string dir = Path.Combine(AppPaths.QuarantineDir, id);
+        string dir = ItemDir(id);
         var item = JsonSerializer.Deserialize<QuarantineItem>(File.ReadAllText(Path.Combine(dir, "manifest.json")))!;
         if (File.Exists(item.OriginalPath))
         {
@@ -121,9 +124,15 @@ public static class Quarantine
 
     public static ActionResult Delete(string id)
     {
-        Directory.Delete(Path.Combine(AppPaths.QuarantineDir, id), true);
+        Directory.Delete(ItemDir(id), true);
         return ActionResult.Ok("Endgültig gelöscht.");
     }
+
+    /// <summary>Ids sind 32 Hex-Zeichen (Guid "N") – so kann eine Id nie aus dem Quarantaene-Ordner herausfuehren ("..\").</summary>
+    public static bool IsValidId(string id) => id.Length == 32 && id.All(Uri.IsHexDigit);
+
+    private static string ItemDir(string id) =>
+        IsValidId(id) ? Path.Combine(AppPaths.QuarantineDir, id) : throw new ArgumentException("Ungültige Quarantäne-Id.", nameof(id));
 
     /// <summary>Entfernt "Löschen beim Neustart" fuer eine Datei aus PendingFileRenameOperations (Paare: Quelle, Ziel; Ziel leer = loeschen).</summary>
     private static void CancelPendingDelete(string path)
