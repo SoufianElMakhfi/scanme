@@ -82,8 +82,9 @@ public static class ExecutableAssessor
                 f.AddIndicator("SIG_NONE", "Datei ist nicht digital signiert", LocationClassifier.IsUserWritable(loc) ? 25 : 15);
                 break;
             case SignatureState.Invalid:
-                bool tampered = info.SignatureStatusText.Contains("manipuliert");
-                f.AddIndicator("SIG_INVALID", $"Ungültige Signatur: {info.SignatureStatusText}", tampered ? 60 : 40);
+                // Manipulierte Datei oder gesperrtes (gestohlenes) Zertifikat wiegen schwerer als z. B. ein abgelaufenes
+                bool severe = info.SignatureStatusText.Contains("manipuliert") || info.SignatureStatusText.Contains("gesperrt");
+                f.AddIndicator("SIG_INVALID", $"Ungültige Signatur: {info.SignatureStatusText}", severe ? 60 : 40);
                 break;
         }
 

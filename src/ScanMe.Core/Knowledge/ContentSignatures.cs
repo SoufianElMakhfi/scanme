@@ -51,7 +51,10 @@ public static class ContentSignatures
     public static List<(Signature Sig, List<string> Hits)> Scan(byte[] data, Target target)
     {
         string ascii = Encoding.Latin1.GetString(data);
-        string utf16 = target == Target.Pe && data.Length > 1 ? Encoding.Unicode.GetString(data) : "";
+        // UTF-16-Zeichenketten koennen an geraden wie ungeraden Byte-Positionen beginnen – beide Ausrichtungen lesen.
+        string utf16 = target == Target.Pe && data.Length > 2
+            ? Encoding.Unicode.GetString(data) + "\0" + Encoding.Unicode.GetString(data, 1, data.Length - 1)
+            : "";
         var result = new List<(Signature, List<string>)>();
         foreach (var sig in All.Concat(Updates.RuleStore.ContentSignatures))
         {

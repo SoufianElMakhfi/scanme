@@ -62,6 +62,17 @@ public sealed class FileTrustService
             catch { }
         }
 
+        // Malware mit gestohlenem Zertifikat ist gueltig signiert, bis die Zertifizierungsstelle das Zertifikat sperrt.
+        if (hr == 0 && !catalog)
+        {
+            try
+            {
+                int revHr = WinTrust.VerifyEmbedded(path, checkRevocation: true);
+                if (WinTrust.IsRevoked(revHr)) hr = revHr;
+            }
+            catch { }
+        }
+
         SignatureState state = hr switch
         {
             0 => SignatureState.Valid,

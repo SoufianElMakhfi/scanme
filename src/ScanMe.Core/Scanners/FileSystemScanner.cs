@@ -419,7 +419,7 @@ public sealed partial class FileSystemScanner : IScanner
         string content;
         try { content = File.ReadAllText(fi.FullName); }
         catch { return; }
-        string[] markers = ["encrypted", "verschlüsselt", "verschlüsselt", "bitcoin", "decrypt", ".onion", "tor browser", "private key", "ransom", "monero"];
+        string[] markers = ["encrypted", "verschlüsselt", "verschluesselt", "bitcoin", "decrypt", ".onion", "tor browser", "private key", "ransom", "monero"];
         int hits = markers.Count(m => content.Contains(m, StringComparison.OrdinalIgnoreCase));
         if (hits < 3) return;
 

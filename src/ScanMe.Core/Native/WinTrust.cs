@@ -14,12 +14,14 @@ internal static class WinTrust
 
     private const uint WTD_UI_NONE = 2;
     private const uint WTD_REVOKE_NONE = 0;
+    private const uint WTD_REVOKE_WHOLECHAIN = 1;
     private const uint WTD_CHOICE_FILE = 1;
     private const uint WTD_CHOICE_CATALOG = 2;
     private const uint WTD_STATEACTION_VERIFY = 1;
     private const uint WTD_STATEACTION_CLOSE = 2;
     private const uint WTD_REVOCATION_CHECK_NONE = 0x10;
     private const uint WTD_CACHE_ONLY_URL_RETRIEVAL = 0x1000;
+    private const uint WTD_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT = 0x80;
 
     public const int TRUST_E_NOSIGNATURE = unchecked((int)0x800B0100);
     public const int TRUST_E_SUBJECT_FORM_UNKNOWN = unchecked((int)0x800B0003);
@@ -29,6 +31,8 @@ internal static class WinTrust
     public const int TRUST_E_BAD_DIGEST = unchecked((int)0x80096010);
     public const int TRUST_E_EXPLICIT_DISTRUST = unchecked((int)0x800B0111);
     public const int CRYPT_E_SECURITY_SETTINGS = unchecked((int)0x80092026);
+    public const int CRYPT_E_REVOKED = unchecked((int)0x80092010);
+    public const int CERT_E_REVOKED = unchecked((int)0x800B010C);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct WINTRUST_FILE_INFO
@@ -102,7 +106,11 @@ internal static class WinTrust
     private static extern bool CryptCATAdminReleaseContext(IntPtr hCatAdmin, uint dwFlags);
 
     /// <summary>Prueft die eingebettete Authenticode-Signatur. Rueckgabe: HRESULT (0 = gueltig).</summary>
-    public static int VerifyEmbedded(string path)
+    /// <param name="checkRevocation">
+    /// Zusaetzlich die Sperrlisten pruefen – nur aus dem Windows-Cache, ScanMe stellt keine Netzwerkanfragen.
+    /// Ohne Cache-Eintrag meldet Windows "offline"; aussagekraeftig ist dann nur <see cref="IsRevoked"/>.
+    /// </param>
+    public static int VerifyEmbedded(string path, bool checkRevocation = false)
     {
         IntPtr pPath = Marshal.StringToCoTaskMemUni(path);
         var fileInfo = new WINTRUST_FILE_INFO
@@ -115,6 +123,11 @@ internal static class WinTrust
         {
             Marshal.StructureToPtr(fileInfo, pFile, false);
             var data = NewData(WTD_CHOICE_FILE, pFile);
+            if (checkRevocation)
+            {
+                data.fdwRevocationChecks = WTD_REVOKE_WHOLECHAIN;
+                data.dwProvFlags = WTD_CACHE_ONLY_URL_RETRIEVAL | WTD_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
+            }
             return Run(ref data);
         }
         finally
@@ -230,6 +243,8 @@ internal static class WinTrust
         return result;
     }
 
+    public static bool IsRevoked(int hr) => hr is CRYPT_E_REVOKED or CERT_E_REVOKED;
+
     public static string Describe(int hr) => hr switch
     {
         0 => "Gültig",
@@ -241,6 +256,7 @@ internal static class WinTrust
         TRUST_E_BAD_DIGEST => "Signatur passt nicht zur Datei (manipuliert!)",
         TRUST_E_EXPLICIT_DISTRUST => "Zertifikat explizit als nicht vertrauenswürdig markiert",
         CRYPT_E_SECURITY_SETTINGS => "Durch Sicherheitsrichtlinie blockiert",
+        CRYPT_E_REVOKED or CERT_E_REVOKED => "Zertifikat wurde gesperrt (gestohlen oder missbraucht)",
         _ => $"Ungültig (0x{hr:X8})",
     };
 }

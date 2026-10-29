@@ -52,6 +52,28 @@ public class DetectionTests
         Assert.Contains(ContentSignatures.Scan(data, ContentSignatures.Target.Pe), m => m.Sig.Family == "Infostealer");
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]   // UTF-16 ab ungerader Position – frueher uebersehen
+    public void Utf16Strings_AreFoundAtAnyOffset(int offset)
+    {
+        var text = Encoding.Unicode.GetBytes("sekurlsa::logonpasswords lsadump::sam");
+        var data = new byte[offset].Concat(text).Concat(new byte[3]).ToArray();
+        Assert.Contains(ContentSignatures.Scan(data, ContentSignatures.Target.Pe), m => m.Sig.Name == "Mimikatz");
+    }
+
+    [Fact]
+    public void ValidSignature_IsNotReportedAsRevoked()
+    {
+        // Eingebettet signierte Microsoft-Datei: Die Sperrlistenpruefung (nur Cache) darf sie nicht ungueltig machen.
+        string? host = Environment.ProcessPath;
+        if (host == null) return;
+        var info = FileTrustService.Shared.Get(host);
+        if (info.Signature == SignatureState.NotSigned) return;
+        Assert.Equal(SignatureState.Valid, info.Signature);
+        Assert.DoesNotContain("gesperrt", info.SignatureStatusText);
+    }
+
     [Fact]
     public void GenericApiNames_DoNotTriggerKeylogger()
     {
