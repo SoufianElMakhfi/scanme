@@ -6,8 +6,7 @@ Unterhaltung und Commit-Nachrichten auf Deutsch.
 
 1. **Bauen und testen:** `dotnet build ScanMe.sln` und `dotnet test tests/ScanMe.Tests` müssen grün sein.
 2. **Committen:** deutsche Commit-Nachricht im Stil der bisherigen Commits (`git log`).
-3. **Pushen** nach `origin` (github.com/SoufianElMakhfi/scanme). Nie direkt auf `main` committen: auf einem
-   Feature-Branch arbeiten; ist der aktuelle Branch noch nicht gemergt, darauf weiterarbeiten. Neue Branches mit `-u` pushen.
+3. **Pushen** direkt auf `main` bei `origin` (github.com/SoufianElMakhfi/scanme), keine Feature-Branches.
 4. **Veröffentlichen:** `powershell -ExecutionPolicy Bypass -File publish.ps1` ausführen. Das Skript testet erneut, baut
    eigenständige EXEs nach `publish\win-x64\` und lässt Defender darüber laufen. Den Ordner ignoriert git absichtlich,
    die EXEs gehören nicht ins Repository.
