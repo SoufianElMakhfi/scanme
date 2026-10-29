@@ -34,14 +34,24 @@ public class AntivirusTests
             Resources               : 1 total
                 containerfile       : C:\Users\Max\Downloads\Tools Ä.zip
             -------------------------------------------------------------------------------
+            ----------------------------- Threat information ------------------------------
+            Threat                  : Trojan:Win32/Glupteba
+            Resources               : 2 total
+                regkey              : HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\\csrss
+                service             : WinmonProcessMonitor
+            -------------------------------------------------------------------------------
             """;
         var d = DefenderCli.ParseDetections(output.Replace("\n", "\r\n"));
-        Assert.Equal(3, d.Count);
+        Assert.Equal(5, d.Count);
         Assert.Equal(new DefenderCli.Detection("Trojan:Win32/Lumma.A!MTB", @"C:\Users\Max\Downloads\setup.exe", null), d[0]);
         Assert.Equal(new DefenderCli.Detection("Trojan:Win32/Lumma.A!MTB", @"C:\Users\Max\Downloads\crack.zip", "setup.exe"), d[1]);
         Assert.Equal(@"C:\Users\Max\Downloads\Tools Ä.zip", d[2].Path);
+        Assert.True(d[2].IsFile);
         Assert.True(DefenderCli.IsPuaName(d[2].Threat));
         Assert.False(DefenderCli.IsPuaName(d[0].Threat));
+        Assert.Equal(new DefenderCli.Detection("Trojan:Win32/Glupteba", @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run\\csrss", null, "regkey"), d[3]);
+        Assert.Equal(("service", "WinmonProcessMonitor"), (d[4].Kind, d[4].Path));
+        Assert.False(d[4].IsFile);
     }
 
     [Fact]

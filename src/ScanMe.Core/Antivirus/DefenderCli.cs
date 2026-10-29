@@ -12,7 +12,12 @@ namespace ScanMe.Core.Antivirus;
 /// </summary>
 public static partial class DefenderCli
 {
-    public sealed record Detection(string Threat, string Path, string? InnerPath);
+    /// <param name="Path">Bei Dateien der Pfad (bei Archiven das Archiv), sonst z. B. der Registry-Schluessel.</param>
+    /// <param name="Kind">"file" fuer Dateien und Archive, sonst Defenders Ressourcenart (regkey, service, process …).</param>
+    public sealed record Detection(string Threat, string Path, string? InnerPath, string Kind = "file")
+    {
+        public bool IsFile => Kind == "file";
+    }
 
     /// <param name="ExitCode">0 = nichts gefunden, 2 = Bedrohungen gefunden, sonst Fehler (z. B. Defender abgeschaltet).</param>
     public sealed record Result(int ExitCode, bool TimedOut, IReadOnlyList<Detection> Detections, string Output)
@@ -23,8 +28,8 @@ public static partial class DefenderCli
     [GeneratedRegex(@"^\s*Threat\s*:\s*(?<name>.+?)\s*$", RegexOptions.IgnoreCase)]
     private static partial Regex ThreatLine();
 
-    [GeneratedRegex(@"^\s*(?:file|containerfile)\s*:\s*(?<path>.+?)\s*$", RegexOptions.IgnoreCase)]
-    private static partial Regex FileLine();
+    [GeneratedRegex(@"^\s*(?<kind>file|containerfile|folder|regkey|service|process|startup|behavior|webfile)\s*:\s*(?<path>.+?)\s*$", RegexOptions.IgnoreCase)]
+    private static partial Regex ResourceLine();
 
     public static string? Find()
     {
@@ -61,10 +66,13 @@ public static partial class DefenderCli
     }
 
     /// <summary>
-    /// Prueft eine Datei oder einen Ordner (rekursiv, inkl. Archiven) ohne Bereinigung.
-    /// Null, wenn Defender nicht vorhanden ist. Bei Abbruch wird MpCmdRun beendet.
+    /// Prueft eine Datei, einen Ordner oder ein ganzes Laufwerk (rekursiv, inkl. Archiven) ohne Bereinigung.
+    /// Bewusst keine Vollpruefung (-ScanType 2): Nur die benutzerdefinierte Pruefung kennt -DisableRemediation,
+    /// sonst verschoebe Defender Funde ohne Rueckfrage. Null, wenn Defender nicht vorhanden ist.
+    /// Bei Abbruch wird MpCmdRun beendet – damit stoppt auch die Pruefung im Defender-Dienst.
     /// </summary>
-    public static Result? Scan(string path, TimeSpan timeout, CancellationToken ct = default)
+    /// <param name="bootSector">Zusaetzlich die Bootsektoren pruefen (Bootkits).</param>
+    public static Result? Scan(string path, TimeSpan timeout, CancellationToken ct = default, bool bootSector = false)
     {
         string? mp = Find();
         if (mp == null) return null;
@@ -76,6 +84,7 @@ public static partial class DefenderCli
             CreateNoWindow = true,
         };
         foreach (var a in new[] { "-Scan", "-ScanType", "3", "-File", path, "-DisableRemediation" }) psi.ArgumentList.Add(a);
+        if (bootSector) psi.ArgumentList.Add("-BootSectorScan");
 
         using var p = Process.Start(psi);
         if (p == null) return null;
@@ -113,7 +122,7 @@ public static partial class DefenderCli
 
     /// <summary>
     /// Liest den Block "LIST OF DETECTED THREATS": je Bedrohung eine Zeile "Threat : Name", darunter die
-    /// betroffenen Dateien. Dateien in Archiven stehen als "archiv.zip->innen.exe".
+    /// betroffenen Ressourcen. Dateien in Archiven stehen als "archiv.zip->innen.exe".
     /// </summary>
     public static List<Detection> ParseDetections(string output)
     {
@@ -125,14 +134,16 @@ public static partial class DefenderCli
             var t = ThreatLine().Match(line);
             if (t.Success) { threat = t.Groups["name"].Value; continue; }
             if (threat == null) continue;
-            var f = FileLine().Match(line);
-            if (!f.Success) continue;
-            string full = f.Groups["path"].Value;
-            int arrow = full.IndexOf("->", StringComparison.Ordinal);
+            var r = ResourceLine().Match(line);
+            if (!r.Success) continue;
+            string kind = r.Groups["kind"].Value.ToLowerInvariant();
+            if (kind == "containerfile") kind = "file";
+            string full = r.Groups["path"].Value;
+            int arrow = kind == "file" ? full.IndexOf("->", StringComparison.Ordinal) : -1;
             string path = arrow > 0 ? full[..arrow] : full;
             string? inner = arrow > 0 ? full[(arrow + 2)..] : null;
-            if (!result.Any(d => d.Threat == threat && d.Path.Equals(path, StringComparison.OrdinalIgnoreCase) && d.InnerPath == inner))
-                result.Add(new Detection(threat, path, inner));
+            if (!result.Any(d => d.Threat == threat && d.Kind == kind && d.Path.Equals(path, StringComparison.OrdinalIgnoreCase) && d.InnerPath == inner))
+                result.Add(new Detection(threat, path, inner, kind));
         }
         return result;
     }
