@@ -19,14 +19,21 @@ public static partial class DefenderCli
         public bool IsFile => Kind == "file";
     }
 
-    /// <param name="ExitCode">0 = nichts gefunden, 2 = Bedrohungen gefunden, sonst Fehler (z. B. Defender abgeschaltet).</param>
+    /// <param name="ExitCode">0 = nichts gefunden, 2 = Bedrohungen gefunden oder Fehler (siehe FailedHr), sonst Fehler (z. B. Defender abgeschaltet).</param>
     public sealed record Result(int ExitCode, bool TimedOut, IReadOnlyList<Detection> Detections, string Output)
     {
-        public bool Completed => !TimedOut && ExitCode is 0 or 2;
+        /// <summary>HRESULT aus "Failed with hr = 0x…" – MpCmdRun beendet sich dabei trotzdem oft mit Code 2.</summary>
+        public int? FailedHr => FailedHrOf(Output);
+        public bool Completed => !TimedOut && (ExitCode == 0 || ExitCode == 2 && FailedHr == null);
+        /// <summary>Datei oder Ordner gibt es nicht (mehr), z. B. eine waehrend des Scans geloeschte Temp-Datei.</summary>
+        public bool NotFound => FailedHr is unchecked((int)0x80070002) or unchecked((int)0x80070003);
     }
 
     [GeneratedRegex(@"^\s*Threat\s*:\s*(?<name>.+?)\s*$", RegexOptions.IgnoreCase)]
     private static partial Regex ThreatLine();
+
+    [GeneratedRegex(@"failed with hr\s*=\s*0x(?<hr>[0-9a-f]{8})", RegexOptions.IgnoreCase)]
+    private static partial Regex FailedLine();
 
     [GeneratedRegex(@"^\s*(?<kind>file|containerfile|folder|regkey|service|process|startup|behavior|webfile)\s*:\s*(?<path>.+?)\s*$", RegexOptions.IgnoreCase)]
     private static partial Regex ResourceLine();
@@ -62,7 +69,13 @@ public static partial class DefenderCli
     public static string? ScanFile(string path, TimeSpan timeout)
     {
         var r = Scan(path, timeout);
-        return r is { ExitCode: 2 } ? r.Detections.FirstOrDefault()?.Threat ?? "Bedrohung erkannt" : null;
+        return r is { Completed: true, ExitCode: 2 } ? r.Detections.FirstOrDefault()?.Threat ?? "Bedrohung erkannt" : null;
+    }
+
+    public static int? FailedHrOf(string output)
+    {
+        var m = FailedLine().Match(output);
+        return m.Success ? int.Parse(m.Groups["hr"].Value, NumberStyles.HexNumber) : null;
     }
 
     /// <summary>

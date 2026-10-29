@@ -61,11 +61,13 @@ public sealed partial class FileSystemScanner : IScanner
 
     private int _filesSeen;
     private readonly Dictionary<string, int> _ransomExtCount = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, bool> _bundledDirs = new(StringComparer.OrdinalIgnoreCase);
 
     public Task ScanAsync(ScanContext ctx)
     {
         _filesSeen = 0;
         _ransomExtCount.Clear();
+        _bundledDirs.Clear();
 
         foreach (var (dir, depth) in Targets(ctx))
         {
@@ -200,6 +202,10 @@ public sealed partial class FileSystemScanner : IScanner
         // JavaScript in Node-Projekten ist Entwicklercode
         if (isScript && ext.Equals(".js", StringComparison.OrdinalIgnoreCase) && fi.DirectoryName != null
             && File.Exists(Path.Combine(fi.DirectoryName, "package.json")))
+            return;
+        // Gebuendelter Browser-Code (entpackte Erweiterungen, Web-Assets): Per Doppelklick laeuft .js im Windows Script
+        // Host – ohne dessen Objekte kann solcher Code dort nichts anrichten. Einzelne Phishing-Skripte bleiben erfasst.
+        if (ext.Equals(".js", StringComparison.OrdinalIgnoreCase) && IsBundledWebCode(fi) && !UsesScriptHost(fi))
             return;
 
         var f = new Finding
@@ -457,6 +463,48 @@ public sealed partial class FileSystemScanner : IScanner
         "PS_ENCODED", "PS_AMSI", "PS_DEFENDER_OFF", "PS_REFLECTION", "SHADOW_DELETE", "BCDEDIT_RECOVERY", "LOG_CLEAR",
         "LSASS_DUMP", "SAM_DUMP", "STICKY_KEYS", "REGSVR_SCROBJ", "MSHTA_URL", "RUNDLL_JS", "CERTUTIL_DL", "NET_ADMIN_ADD", "WMIC_XSL",
     };
+
+    private bool IsBundledWebCode(FileInfo fi)
+    {
+        var dir = fi.Directory;
+        if (dir == null) return false;
+        if (!_bundledDirs.TryGetValue(dir.FullName, out bool bundled))
+            _bundledDirs[dir.FullName] = bundled = IsBundledWebDir(dir);
+        return bundled;
+    }
+
+    /// <summary>Viele Skripte im selben Ordner oder ein Erweiterungs-/Paketmanifest darueber: App-Code, kein Anhang.</summary>
+    public static bool IsBundledWebDir(DirectoryInfo dir)
+    {
+        try
+        {
+            if (dir.EnumerateFiles("*.js").Take(5).Count() >= 5) return true;
+            // Manifest bis zu vier Ebenen hoeher, aber nie im Temp-, Downloads- oder Desktop-Ordner selbst
+            int level = 0;
+            for (var d = dir; d.Parent != null && level++ < 4; d = d.Parent)
+            {
+                if (d.Name is "Temp" or "Downloads" or "Desktop") break;
+                if (File.Exists(Path.Combine(d.FullName, "manifest.json")) || File.Exists(Path.Combine(d.FullName, "package.json"))) return true;
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    /// <summary>
+    /// Objekte, ueber die JScript im Windows Script Host Dateien schreibt oder Programme startet. ActiveX-Objekte aus
+    /// alten Browser-Polyfills (XMLHTTP, DOM, htmlfile, Flash) zaehlen nicht, alle anderen schon.
+    /// </summary>
+    [GeneratedRegex(@"\bWScript\b|\bWSH\.|Scripting\.FileSystemObject|Shell\.Application|ADODB\.Stream|WinHttp\.WinHttpRequest|(?-i:\bGetObject)\s*\(\s*[""']|ActiveXObject\s*\(\s*(?![""'](?:Msxml2\.|Microsoft\.XML|htmlfile|ShockwaveFlash))", RegexOptions.IgnoreCase)]
+    private static partial Regex ScriptHostUse();
+
+    public static bool UsesScriptHost(string script) => ScriptHostUse().IsMatch(script);
+
+    private static bool UsesScriptHost(FileInfo fi)
+    {
+        try { return UsesScriptHost(File.ReadAllText(fi.FullName)); }
+        catch { return true; }
+    }
 
     private static bool IsExeLike(string ext) => ext.ToLowerInvariant() is ".exe" or ".scr" or ".com" or ".pif" or ".msi" or ".cpl";
 

@@ -61,6 +61,26 @@ public class AntivirusTests
     }
 
     [Fact]
+    public void FailedScanIsNotAThreat()
+    {
+        // MpCmdRun beendet sich auch bei Fehlern mit Code 2 – wie bei einem Fund
+        const string missing = "[Failed][0x80070002] Das System kann die angegebene Datei nicht finden.\r\n" +
+                               "CmdTool: Failed with hr = 0x80070002. Check C:\\Users\\x\\AppData\\Local\\Temp\\MpCmdRun.log for more information\r\n";
+        var r = new DefenderCli.Result(2, false, DefenderCli.ParseDetections(missing), missing);
+        Assert.False(r.Completed);
+        Assert.True(r.NotFound);
+        Assert.Equal(unchecked((int)0x80070002), r.FailedHr);
+
+        var denied = new DefenderCli.Result(2, false, [], "CmdTool: Failed with hr = 0x80070005.");
+        Assert.False(denied.Completed);
+        Assert.False(denied.NotFound);
+
+        var found = new DefenderCli.Result(2, false, [new DefenderCli.Detection("Trojan:Win32/X", @"C:\x.exe", null)], "Threat : Trojan:Win32/X");
+        Assert.True(found.Completed);
+        Assert.True(new DefenderCli.Result(0, false, [], "Scan finished.").Completed);
+    }
+
+    [Fact]
     public void OwnAmsiChecksAreNotDefenderFindings()
     {
         // So traegt Defender eine AMSI-Pruefung ein (beobachtet mit Defender 4.18.26100)

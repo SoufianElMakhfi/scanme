@@ -90,8 +90,9 @@ public sealed class SecurityConfigScanner : IScanner
                     bool av = mo["AntivirusEnabled"] as bool? ?? false;
                     bool rtpOn = mo["RealTimeProtectionEnabled"] as bool? ?? false;
                     bool tamper = mo["IsTamperProtected"] as bool? ?? false;
-                    int sigAge = Convert.ToInt32(mo["AntivirusSignatureAge"] ?? 0);
-                    int scanAge = Convert.ToInt32(mo["FullScanAge"] ?? 0);
+                    long sigAge = Convert.ToInt64(mo["AntivirusSignatureAge"] ?? 0);
+                    // UInt32 im WMI-Schema; 4294967295 heisst "noch nie" – passt nicht in int
+                    long scanAge = Convert.ToInt64(mo["FullScanAge"] ?? 0);
                     string? mode = mo["AMRunningMode"]?.ToString();
                     bool passive = mode != null && mode.Contains("Passive", StringComparison.OrdinalIgnoreCase);
 
