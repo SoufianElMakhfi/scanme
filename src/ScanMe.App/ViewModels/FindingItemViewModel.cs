@@ -2,7 +2,9 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ScanMe.Core.Actions;
+using ScanMe.Core.Engine;
 using ScanMe.Core.Models;
+using ScanMe.Core.Reporting;
 
 namespace ScanMe.App.ViewModels;
 
@@ -37,9 +39,20 @@ public sealed partial class FindingItemViewModel : ObservableObject
     // --- Laienansicht ---
     public Verdict Verdict => Finding.Verdict;
     public string PlainSummary => Finding.PlainSummary;
-    public IReadOnlyList<string> Questions => Finding.Questions;
+    // Kopien: Nach einer erneuten Bewertung (z. B. Defender-Pruefung) muss die Liste sichtbar neu geladen werden.
+    public IReadOnlyList<string> Questions => Finding.Questions.ToList();
     public bool HasQuestions => Finding.Questions.Count > 0;
     public string IfUnknown => Finding.IfUnknown;
+
+    // --- Wie sicher ist das? ---
+    public string Certainty => Finding.Certainty;
+    public IReadOnlyList<CheckLine> Checks => FindingText.Ordered(Finding.Checks)
+        .Select(c => new CheckLine(c.Symbol, c.Result, $"{c.Source}: {c.Text}")).ToList();
+    public bool HasCertainty => Finding.Certainty.Length > 0 || Finding.Checks.Count > 0;
+
+    /// <summary>Selbst nachpruefen: VirusTotal und Defender stehen direkt bei der Einschaetzung, nicht erst in den Details.</summary>
+    public IReadOnlyList<ActionItemViewModel> CheckActions =>
+        Actions.Where(a => a.Action.Kind is RemediationKind.LookupOnline or RemediationKind.DefenderScanFile).ToList();
 
     /// <summary>Bei "Handeln" sofort die Schritte zeigen, sonst erst nach "Kenne ich nicht".</summary>
     public bool ShowSteps => Verdict == Verdict.Act || (DontKnow && !string.IsNullOrEmpty(IfUnknown));
@@ -68,17 +81,32 @@ public sealed partial class FindingItemViewModel : ObservableObject
     private void DoNotKnow() => DontKnow = true;
 
     [RelayCommand]
-    private void CopyDetails()
+    private void CopyAll()
     {
-        var lines = new List<string> { $"[{Finding.Severity.German()} {Finding.Score}] {Finding.Title}", Finding.Description, "", "Indikatoren:" };
-        lines.AddRange(Finding.Indicators.Select(i => $"  {i.Weight,4}  {i.Text}"));
-        lines.Add("");
-        lines.AddRange(Finding.Details.Select(d => $"{d.Key}: {d.Value}"));
-        Clipboard.SetText(string.Join(Environment.NewLine, lines));
-        ActionMessage = "Details in die Zwischenablage kopiert.";
-        ActionSucceeded = true;
+        try
+        {
+            Clipboard.SetText(FindingText.ToText(Finding));
+            ActionMessage = "✔ Der komplette Fund steht in der Zwischenablage – mit Strg+V z. B. in eine E-Mail einfügen.";
+            ActionSucceeded = true;
+        }
+        catch (Exception ex)
+        {
+            // Die Zwischenablage kann kurz von einem anderen Programm belegt sein.
+            ActionMessage = "✖ Kopieren fehlgeschlagen: " + ex.Message;
+            ActionSucceeded = false;
+        }
+    }
+
+    /// <summary>Nach einer Pruefung durch den Nutzer (z. B. "Mit Defender scannen") Bewertung und Anzeige erneuern.</summary>
+    public void Reassess()
+    {
+        RiskScorer.Finalize(Finding);
+        PlainLanguage.Apply(Finding);
+        OnPropertyChanged(string.Empty);
     }
 }
+
+public sealed record CheckLine(string Symbol, CheckResult Result, string Text);
 
 public sealed partial class ActionItemViewModel : ObservableObject
 {
@@ -114,5 +142,6 @@ public sealed partial class ActionItemViewModel : ObservableObject
         _owner.IsBusy = false;
         _owner.ActionSucceeded = result.Success;
         _owner.ActionMessage = (result.Success ? "✔ " : "✖ ") + result.Message;
+        if (result.Success && Action.Kind == RemediationKind.DefenderScanFile) _owner.Reassess();
     }
 }

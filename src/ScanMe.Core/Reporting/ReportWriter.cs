@@ -77,6 +77,9 @@ public static class ReportWriter
                     sb.Append($"<div class='muted'>{E(f.OccurredWhat ?? "")}: {(f.OccurredDayOnly ? when.ToString("dd.MM.yyyy") : when.ToString("dd.MM.yyyy HH:mm"))}</div>");
                 if (f.Description.Length > 0) sb.Append($"<div>{E(f.Description)}</div>");
                 if (f.Explanation.Length > 0) sb.Append($"<div class='muted'>{E(f.Explanation)}</div>");
+                if (f.Certainty.Length > 0) sb.Append($"<div><b>Wie sicher ist das?</b> {E(f.Certainty)}</div>");
+                foreach (var c in FindingText.Ordered(f.Checks))
+                    sb.Append($"<div class='ind {(c.Result == CheckResult.Bad ? "pos" : c.Result == CheckResult.Good ? "neg" : "")}'>{E(c.Symbol)} {E(c.Source)}: {E(c.Text)}</div>");
                 if (f.Recommendation.Length > 0) sb.Append($"<div class='rec'><b>Empfehlung:</b> {E(f.Recommendation)}</div>");
                 sb.Append("<details><summary>Indikatoren &amp; Details</summary>");
                 foreach (var i in f.Indicators.Where(i => i.Weight != 0).OrderByDescending(i => i.Weight))

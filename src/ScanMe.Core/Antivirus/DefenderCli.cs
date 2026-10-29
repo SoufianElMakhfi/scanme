@@ -27,6 +27,8 @@ public static partial class DefenderCli
         public bool Completed => !TimedOut && (ExitCode == 0 || ExitCode == 2 && FailedHr == null);
         /// <summary>Datei oder Ordner gibt es nicht (mehr), z. B. eine waehrend des Scans geloeschte Temp-Datei.</summary>
         public bool NotFound => FailedHr is unchecked((int)0x80070002) or unchecked((int)0x80070003);
+        /// <summary>Name der ersten Bedrohung einer vollstaendigen Pruefung – oder null, wenn nichts gefunden wurde.</summary>
+        public string? Threat => Completed && ExitCode == 2 ? Detections.FirstOrDefault()?.Threat ?? "Bedrohung erkannt" : null;
     }
 
     [GeneratedRegex(@"^\s*Threat\s*:\s*(?<name>.+?)\s*$", RegexOptions.IgnoreCase)]
@@ -63,13 +65,6 @@ public static partial class DefenderCli
     {
         int dash = dir.IndexOf('-');
         return Version.TryParse(dash > 0 ? dir[..dash] : dir, out var v) ? v : new Version(0, 0);
-    }
-
-    /// <summary>Prueft eine Datei mit Defender. Rueckgabe: Bedrohungsname oder null.</summary>
-    public static string? ScanFile(string path, TimeSpan timeout)
-    {
-        var r = Scan(path, timeout);
-        return r is { Completed: true, ExitCode: 2 } ? r.Detections.FirstOrDefault()?.Threat ?? "Bedrohung erkannt" : null;
     }
 
     public static int? FailedHrOf(string output)

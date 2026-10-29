@@ -62,6 +62,34 @@ public class YaraTests
     }
 
     [Fact]
+    public void Engine_ScansFiles_WithOptionalSizeLimit()
+    {
+        if (!EngineAvailable()) return;
+        using var engine = YaraEngine.FromSource("""rule ScanMe_Test_Tail { strings: $a = "stratum+tcp://" condition: $a }""");
+        string dir = Directory.CreateTempSubdirectory("scanme-yara").FullName;
+        try
+        {
+            // Treffer ganz am Ende einer grossen Datei: Die Datei muss vollstaendig gelesen werden.
+            string big = Path.Combine(dir, "gross.bin");
+            using (var fs = File.Create(big))
+            {
+                fs.SetLength(80L * 1024 * 1024);
+                fs.Seek(-32, SeekOrigin.End);
+                fs.Write("stratum+tcp://x"u8);
+            }
+            Assert.Equal(["ScanMe_Test_Tail"], engine.ScanFile(big));
+            // Nicht gelesen ist etwas anderes als "nichts gefunden".
+            Assert.Null(engine.ScanFile(big, YaraEngine.QuickMaxFileSize));
+            Assert.Null(engine.ScanFile(Path.Combine(dir, "fehlt.bin")));
+
+            string empty = Path.Combine(dir, "leer.bin");
+            File.WriteAllBytes(empty, []);
+            Assert.Empty(engine.ScanFile(empty)!);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
     public void Engine_ReportsBrokenRules()
     {
         if (!EngineAvailable()) return;
@@ -84,6 +112,8 @@ public class YaraTests
     [InlineData("SIGNATURE_BASE_HKTL_Mimikatz_Strings", true)]
     [InlineData("DITEKSHEN_INDICATOR_SUSPICIOUS_EXE_UACBypass_CMSTPCOM", true)]
     [InlineData("DITEKSHEN_INDICATOR_TOOL_PWS_Credstealer", true)]
+    [InlineData("COD3NYM_DOTNET_Singlefilehost_Bundled_App", true)]   // traf jede .NET-Einzeldatei-EXE, auch ScanMe selbst
+    [InlineData("VOLEXITY_Informational_Win_3Cx_Msi", true)]
     [InlineData("MALPEDIA_Win_Redline_Stealer_Auto", false)]
     [InlineData("ESET_Turla_Kazuar", false)]
     public void RuleClassification(string rule, bool soft) => Assert.Equal(soft, MalwareScanner.IsSoftRule(rule));

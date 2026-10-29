@@ -33,6 +33,14 @@ public sealed class Finding
     /// <summary>Was tun, wenn der Nutzer das NICHT kennt – ein konkreter Schritt.</summary>
     public string IfUnknown { get; set; } = "";
 
+    // --- Wie gut ist der Verdacht belegt? ---
+
+    /// <summary>Ergebnisse unabhaengiger Pruefungen: Virenschutz, YARA, Signatur.</summary>
+    public List<Check> Checks { get; } = new();
+
+    /// <summary>Ein bis zwei Saetze: bestaetigt, nur Verdacht oder bekanntes Programm – leer, wenn nicht zutreffend.</summary>
+    public string Certainty { get; set; } = "";
+
     public string? FilePath { get; set; }
     public int? ProcessId { get; set; }
     public string? Location { get; set; }
@@ -76,6 +84,21 @@ public sealed class Finding
         OccurredDayOnly = dayOnly;
         return this;
     }
+
+    /// <summary>
+    /// Haelt das Ergebnis einer Pruefung fest. Ein schlechteres Ergebnis derselben Quelle wird nie durch ein besseres
+    /// ersetzt – ein Treffer bleibt, auch wenn eine spaetere Pruefung nichts findet.
+    /// </summary>
+    public Finding Checked(Check check)
+    {
+        var old = Checks.FirstOrDefault(c => c.Source == check.Source);
+        if (old != null && check.Result > old.Result) return this;
+        if (old != null) Checks.Remove(old);
+        Checks.Add(check);
+        return this;
+    }
+
+    public Finding Checked(string source, CheckResult result, string text) => Checked(new Check(source, result, text));
 
     public Finding Detail(string key, string? value)
     {

@@ -48,6 +48,14 @@ public static class SeverityText
         _ => "Info",
     };
 
+    public static string German(this Verdict v) => v switch
+    {
+        Verdict.Act => "Handeln",
+        Verdict.Check => "Kurz prüfen",
+        Verdict.LikelyHarmless => "Wahrscheinlich harmlos",
+        _ => "Nur Info",
+    };
+
     public static string German(this FindingCategory c) => c switch
     {
         FindingCategory.Process => "Prozesse",

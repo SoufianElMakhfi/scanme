@@ -1,3 +1,4 @@
+using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -14,8 +15,8 @@ public sealed unsafe class YaraEngine : IDisposable
     public static string DllPath => Path.Combine(Dir, "yara_x_capi.dll");
     public static string PackPath => Path.Combine(Dir, "rules.bin");
 
-    /// <summary>Groessere Dateien werden nicht gelesen (Installer, Spiele-Archive).</summary>
-    public const long MaxFileSize = 64 * 1024 * 1024;
+    /// <summary>Groessenlimit fuer den Schnellscan (Installer, Spiele-Archive); der vollstaendige Scan prueft alles.</summary>
+    public const long QuickMaxFileSize = 64 * 1024 * 1024;
 
     private readonly object _sync = new();
     private readonly List<string> _matches = new();
@@ -31,7 +32,7 @@ public sealed unsafe class YaraEngine : IDisposable
         : !File.Exists(DllPath) || !File.Exists(PackPath) ? $"YARA-Dateien fehlen ({Dir}) – den Ordner 'Data' neben ScanMe.exe mit entpacken."
         : null;
 
-    private YaraEngine(RulePack pack)
+    private YaraEngine(RulePack pack, int timeoutSeconds)
     {
         Pack = pack;
         IntPtr compiler = IntPtr.Zero;
@@ -45,7 +46,7 @@ public sealed unsafe class YaraEngine : IDisposable
             RuleCount = Native.yrx_rules_count(_rules);
 
             Check(Native.yrx_scanner_create(_rules, out _scanner), "Scanner");
-            Check(Native.yrx_scanner_set_timeout(_scanner, 10), "Timeout");
+            Check(Native.yrx_scanner_set_timeout(_scanner, (ulong)timeoutSeconds), "Timeout");
             _self = GCHandle.Alloc(this);
             Check(Native.yrx_scanner_on_matching_rule(_scanner, &OnMatchingRule, GCHandle.ToIntPtr(_self)), "Callback");
         }
@@ -61,41 +62,53 @@ public sealed unsafe class YaraEngine : IDisposable
     }
 
     /// <summary>Entpackt und kompiliert die Regeln (dauert gut eine Sekunde).</summary>
-    public static YaraEngine Load() => new(RulePack.Decode(File.ReadAllBytes(PackPath)));
+    /// <param name="timeoutSeconds">Schutz gegen Haenger je Datei; bis dahin gefundene Treffer zaehlen trotzdem.</param>
+    public static YaraEngine Load(int timeoutSeconds = 10) => new(RulePack.Decode(File.ReadAllBytes(PackPath)), timeoutSeconds);
 
     /// <summary>Fuer Tests: eigene Regeln statt des Regelpakets.</summary>
-    public static YaraEngine FromSource(string source) => new(RulePack.Parse("SCANME-YARA-PACK 1\n---\n" + source));
+    public static YaraEngine FromSource(string source) => new(RulePack.Parse("SCANME-YARA-PACK 1\n---\n" + source), 10);
 
     /// <summary>Namen der passenden Regeln. Nicht threadsicher genutzt – daher gesperrt.</summary>
     public IReadOnlyList<string> Scan(ReadOnlySpan<byte> data)
     {
+        fixed (byte* p = data) return Scan(p, (nuint)data.Length);
+    }
+
+    private IReadOnlyList<string> Scan(byte* data, nuint length)
+    {
         lock (_sync)
         {
             _matches.Clear();
-            fixed (byte* p = data)
-            {
-                int r = Native.yrx_scanner_scan(_scanner, p, (nuint)data.Length);
-                // Zeitueberschreitung: bis dahin gefundene Treffer sind trotzdem gueltig.
-                if (r != Native.YRX_SUCCESS && r != Native.YRX_SCAN_TIMEOUT) Check(r, "Scan");
-            }
+            int r = Native.yrx_scanner_scan(_scanner, data, length);
+            // Zeitueberschreitung: bis dahin gefundene Treffer sind trotzdem gueltig.
+            if (r != Native.YRX_SUCCESS && r != Native.YRX_SCAN_TIMEOUT) Check(r, "Scan");
             return _matches.ToList();
         }
     }
 
-    public IReadOnlyList<string> ScanFile(string path)
+    /// <summary>
+    /// Prueft eine Datei. Sie wird in den Speicher eingeblendet statt eingelesen: Auch sehr grosse Dateien
+    /// (Malware wird gern kuenstlich aufgeblaeht, um Groessenlimits von Scannern zu unterlaufen) brauchen so keinen
+    /// ebenso grossen Puffer. Null, wenn die Datei nicht gelesen werden konnte oder groesser als <paramref name="maxSize"/>
+    /// ist – das ist kein "nichts gefunden".
+    /// </summary>
+    public IReadOnlyList<string>? ScanFile(string path, long maxSize = long.MaxValue)
     {
-        var fi = new FileInfo(path);
-        if (!fi.Exists || fi.Length == 0 || fi.Length > MaxFileSize) return [];
-        byte[] data;
         try
         {
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            data = new byte[fs.Length];
-            fs.ReadExactly(data);
+            long length = fs.Length;
+            if (length > maxSize) return null;
+            if (length == 0) return [];
+            using var map = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, leaveOpen: false);
+            using var view = map.CreateViewAccessor(0, length, MemoryMappedFileAccess.Read);
+            byte* p = null;
+            view.SafeMemoryMappedViewHandle.AcquirePointer(ref p);
+            try { return Scan(p + view.PointerOffset, (nuint)length); }
+            finally { view.SafeMemoryMappedViewHandle.ReleasePointer(); }
         }
-        catch (IOException) { return []; }
-        catch (UnauthorizedAccessException) { return []; }
-        return Scan(data);
+        catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]

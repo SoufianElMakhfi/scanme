@@ -71,6 +71,9 @@
             <!-- ===== Liste ===== -->
             <ListBox ItemsSource="{Binding View}" SelectedItem="{Binding SelectedItem}" Style="{StaticResource CleanList}"
                      ItemContainerStyle="{StaticResource CleanListItem}">
+                <ListBox.InputBindings>
+                    <KeyBinding Key="C" Modifiers="Control" Command="{Binding SelectedItem.CopyAllCommand}" />
+                </ListBox.InputBindings>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel Margin="0,10,12,10">
@@ -99,16 +102,20 @@
                                   Visibility="{Binding Converter={StaticResource Vis}}">
                         <StackPanel Margin="22">
                             <!-- Kopf -->
-                            <StackPanel Orientation="Horizontal">
-                                <Border CornerRadius="5" Padding="10,3" Background="{Binding Verdict, Converter={StaticResource VerdictBrush}}">
-                                    <TextBlock Text="{Binding Verdict, Converter={StaticResource VerdictText}}" FontSize="12" FontWeight="Bold" Foreground="#111" />
-                                </Border>
-                                <TextBlock Text="{Binding Category, Converter={StaticResource CatText}}" Style="{StaticResource Label}" VerticalAlignment="Center" Margin="10,0,0,0" />
-                                <Border CornerRadius="5" Padding="8,2" Margin="10,0,0,0" Background="#183526" Visibility="{Binding IsProtected, Converter={StaticResource Vis}}">
-                                    <TextBlock Text="🛡 Windows-Bestandteil – wird nie gelöscht" FontSize="11" Foreground="{StaticResource GoodBrush}" />
-                                </Border>
-                            </StackPanel>
-                            <TextBlock Text="{Binding Title}" Style="{StaticResource H1}" FontSize="20" TextWrapping="Wrap" Margin="0,10,0,0" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="⧉  Alles kopieren" Command="{Binding CopyAllCommand}"
+                                        Padding="8,4" VerticalAlignment="Center" ToolTip="Den kompletten Fund als Text kopieren (auch mit Strg+C in der Liste)" />
+                                <WrapPanel>
+                                    <Border CornerRadius="5" Padding="10,3" Background="{Binding Verdict, Converter={StaticResource VerdictBrush}}">
+                                        <TextBlock Text="{Binding Verdict, Converter={StaticResource VerdictText}}" FontSize="12" FontWeight="Bold" Foreground="#111" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Category, Converter={StaticResource CatText}}" Style="{StaticResource Label}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    <Border CornerRadius="5" Padding="8,2" Margin="10,0,0,0" Background="#183526" Visibility="{Binding IsProtected, Converter={StaticResource Vis}}">
+                                        <TextBlock Text="🛡 Windows-Bestandteil – wird nie gelöscht" FontSize="11" Foreground="{StaticResource GoodBrush}" />
+                                    </Border>
+                                </WrapPanel>
+                            </DockPanel>
+                            <TextBox Text="{Binding Title, Mode=OneWay}" Style="{StaticResource SelectableBody}" FontSize="20" FontWeight="SemiBold" Margin="0,10,0,0" />
                             <TextBlock Text="{Binding OccurredText}" Style="{StaticResource Muted}" FontSize="12" Margin="0,4,0,0"
                                        Visibility="{Binding OccurredText, Converter={StaticResource Vis}}" />
 
@@ -118,7 +125,29 @@
                                     BorderBrush="{Binding Verdict, Converter={StaticResource VerdictBrush}}">
                                 <StackPanel>
                                     <TextBlock Text="UNSERE EINSCHÄTZUNG" Style="{StaticResource Label}" Foreground="{Binding Verdict, Converter={StaticResource VerdictBrush}}" />
-                                    <TextBlock Text="{Binding PlainSummary}" Style="{StaticResource Body}" FontSize="14" Margin="0,6,0,0" />
+                                    <TextBox Text="{Binding PlainSummary, Mode=OneWay}" Style="{StaticResource SelectableBody}" FontSize="14" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 1b. Wie gut ist das belegt? Virenschutz, YARA, Signatur -->
+                            <Border Margin="0,12,0,0" CornerRadius="8" Padding="16,14" Background="{StaticResource Surface2Brush}"
+                                    Visibility="{Binding HasCertainty, Converter={StaticResource Vis}}">
+                                <StackPanel>
+                                    <TextBlock Text="WIE SICHER IST DAS?" Style="{StaticResource Label}" />
+                                    <TextBox Text="{Binding Certainty, Mode=OneWay}" Style="{StaticResource SelectableBody}" Margin="0,6,0,0"
+                                             Visibility="{Binding Certainty, Converter={StaticResource Vis}}" />
+                                    <ItemsControl ItemsSource="{Binding Checks}" Margin="0,8,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,2">
+                                                    <TextBlock DockPanel.Dock="Left" Width="20" Text="{Binding Symbol}" FontWeight="Bold"
+                                                               Foreground="{Binding Result, Converter={StaticResource CheckBrush}}" />
+                                                    <TextBox Text="{Binding Text, Mode=OneWay}" Style="{StaticResource SelectableBody}" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl ItemsSource="{Binding CheckActions}" ItemTemplate="{StaticResource ActionButton}" ItemsPanel="{StaticResource Wrap}" Margin="0,10,0,-8" />
                                 </StackPanel>
                             </Border>
 
@@ -132,7 +161,7 @@
                                             <DataTemplate>
                                                 <DockPanel Margin="0,3">
                                                     <TextBlock DockPanel.Dock="Left" Text="?" FontWeight="Bold" Foreground="{StaticResource AccentHoverBrush}" Width="16" />
-                                                    <TextBlock Text="{Binding}" Style="{StaticResource Body}" />
+                                                    <TextBox Text="{Binding Mode=OneWay}" Style="{StaticResource SelectableBody}" />
                                                 </DockPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -153,7 +182,7 @@
                                     Visibility="{Binding ShowSteps, Converter={StaticResource Vis}}">
                                 <StackPanel>
                                     <TextBlock Text="DAS SOLLTEN SIE JETZT TUN" Style="{StaticResource Label}" Foreground="{StaticResource AccentHoverBrush}" />
-                                    <TextBlock Text="{Binding IfUnknown}" Style="{StaticResource Body}" Margin="0,6,0,10" />
+                                    <TextBox Text="{Binding IfUnknown, Mode=OneWay}" Style="{StaticResource SelectableBody}" Margin="0,6,0,10" />
                                     <ItemsControl ItemsSource="{Binding PrimaryActions}" ItemTemplate="{StaticResource ActionButton}" ItemsPanel="{StaticResource Wrap}" />
                                 </StackPanel>
                             </Border>
@@ -183,19 +212,19 @@
                                     </TextBlock>
 
                                     <TextBlock Text="WAS WURDE GEFUNDEN" Style="{StaticResource Label}" Margin="0,12,0,4" />
-                                    <TextBlock Text="{Binding Description}" Style="{StaticResource Body}" />
+                                    <TextBox Text="{Binding Description, Mode=OneWay}" Style="{StaticResource SelectableBody}" />
 
                                     <TextBlock Text="HINTERGRUND" Style="{StaticResource Label}" Margin="0,12,0,4" Visibility="{Binding Explanation, Converter={StaticResource Vis}}" />
-                                    <TextBlock Text="{Binding Explanation}" Style="{StaticResource Body}" Foreground="{StaticResource MutedBrush}" Visibility="{Binding Explanation, Converter={StaticResource Vis}}" />
+                                    <TextBox Text="{Binding Explanation, Mode=OneWay}" Style="{StaticResource SelectableBody}" Foreground="{StaticResource MutedBrush}" Visibility="{Binding Explanation, Converter={StaticResource Vis}}" />
 
                                     <TextBlock Text="EMPFEHLUNG (TECHNISCH)" Style="{StaticResource Label}" Margin="0,12,0,4" Visibility="{Binding Recommendation, Converter={StaticResource Vis}}" />
-                                    <TextBlock Text="{Binding Recommendation}" Style="{StaticResource Body}" Visibility="{Binding Recommendation, Converter={StaticResource Vis}}" />
+                                    <TextBox Text="{Binding Recommendation, Mode=OneWay}" Style="{StaticResource SelectableBody}" Visibility="{Binding Recommendation, Converter={StaticResource Vis}}" />
 
                                     <TextBlock Text="ALLE AKTIONEN" Style="{StaticResource Label}" Margin="0,12,0,6" Visibility="{Binding Actions.Count, Converter={StaticResource Vis}}" />
                                     <ItemsControl ItemsSource="{Binding Actions}" ItemTemplate="{StaticResource ActionButton}" ItemsPanel="{StaticResource Wrap}" />
                                     <WrapPanel>
                                         <CheckBox Content="Ignorieren (bekannt / gewollt)" IsChecked="{Binding IsIgnored}" Margin="0,0,16,0" />
-                                        <Button Style="{StaticResource GhostButton}" Content="Details kopieren" Command="{Binding CopyDetailsCommand}" Padding="6,4" />
+                                        <Button Style="{StaticResource GhostButton}" Content="Alles kopieren" Command="{Binding CopyAllCommand}" Padding="6,4" />
                                     </WrapPanel>
 
                                     <TextBlock Text="BEWEISE / INDIKATOREN (+ erhöht, − senkt das Risiko)" Style="{StaticResource Label}" Margin="0,12,0,6" />
@@ -205,7 +234,7 @@
                                                 <DockPanel Margin="0,2">
                                                     <TextBlock DockPanel.Dock="Left" Width="44" Text="{Binding Weight, Converter={StaticResource WeightText}}" FontFamily="{StaticResource MonoFont}"
                                                                Foreground="{Binding Weight, Converter={StaticResource WeightBrush}}" FontWeight="Bold" />
-                                                    <TextBlock Text="{Binding Text}" Style="{StaticResource Body}" />
+                                                    <TextBox Text="{Binding Text, Mode=OneWay}" Style="{StaticResource SelectableBody}" />
                                                 </DockPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>

@@ -24,6 +24,21 @@ public sealed class SeverityToBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
+/// <summary>Ergebnis einer Pruefung (Virenschutz, YARA, Signatur) -> Farbe.</summary>
+public sealed class CheckResultToBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        Application.Current.FindResource(value switch
+        {
+            CheckResult.Bad => "CriticalBrush",
+            CheckResult.Warning => "MediumBrush",
+            CheckResult.Good => "GoodBrush",
+            _ => "MutedBrush",
+        });
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 /// <summary>Laien-Ampel -> Farbe / Text.</summary>
 public sealed class VerdictToBrushConverter : IValueConverter
 {

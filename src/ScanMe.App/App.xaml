@@ -13,6 +13,7 @@
             <local:VerdictToBrushConverter x:Key="VerdictBrush" />
             <local:VerdictTextConverter x:Key="VerdictText" />
             <local:VerdictToBackgroundConverter x:Key="VerdictBg" />
+            <local:CheckResultToBrushConverter x:Key="CheckBrush" />
             <local:CategoryTextConverter x:Key="CatText" />
             <local:HealthToBrushConverter x:Key="HealthBrush" />
             <local:BoolToVisibilityConverter x:Key="Vis" />

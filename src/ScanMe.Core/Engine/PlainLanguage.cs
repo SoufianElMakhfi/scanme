@@ -58,7 +58,63 @@ public static class PlainLanguage
         AddQuestions(f);
         f.PlainSummary = Summary(f, evidence, positives);
         f.IfUnknown = IfUnknown(f);
+        f.Certainty = Certainty(f);
     }
+
+    /// <summary>Echte, bekannte Programme, die erst durch Missbrauch gefaehrlich werden (Fernwartung, Tunnel).</summary>
+    private static readonly HashSet<string> LegitToolCodes = new(StringComparer.Ordinal) { "TOOL_REMOTEACCESS", "REMOTE_TOOL", "TOOL_TUNNEL" };
+
+    /// <summary>
+    /// Wie gut ist der Verdacht belegt? Trennt, was ein Virenschutz bestaetigt hat, von ScanMes eigener Einschaetzung
+    /// anhand auffaelliger Merkmale – und bekannte echte Programme (z. B. Fernwartung) von Schadsoftware.
+    /// </summary>
+    private static string Certainty(Finding f)
+    {
+        if (f.Verdict is Verdict.Info or Verdict.LikelyHarmless) return "";
+        var av = f.Checks.Where(c => c.IsAntivirus).ToList();
+        if (av.Any(c => c.Result == CheckResult.Bad))
+            return "Bestätigt: Ihr Virenschutz erkennt das als Schadsoftware. Ein Fehlalarm ist sehr unwahrscheinlich.";
+        if (av.Any(c => c.IsPua))
+            return "Ihr Virenschutz stuft das als unerwünschtes Programm ein – etwa Werbe-Software, aufdringliche „PC-Optimierer“ oder " +
+                   "Hacker-Werkzeuge. Keine klassische Schadsoftware, aber selten etwas, das man behalten möchte.";
+
+        bool otherHard = f.Indicators.Any(i => i.Weight > 0 && !LegitToolCodes.Contains(i.Code)
+                                               && (HardCodes.Contains(i.Code) || i.Code.StartsWith("CONTENT_", StringComparison.Ordinal)));
+        if (f.Indicators.Any(i => i.Weight > 0 && LegitToolCodes.Contains(i.Code)) && !otherHard)
+        {
+            bool genuine = f.Checks.Any(c => c.Source == Check.Signature && c.Result == CheckResult.Good);
+            return $"Kein Virus: Das ist ein echtes, bekanntes Programm{(genuine ? " – gültig signiert, also das Original und keine Fälschung" : "")}. " +
+                   "Gefährlich wird es nur, wenn nicht Sie es eingerichtet haben: Dann kann jemand anderes darüber auf Ihren PC zugreifen. Deshalb die Frage unten.";
+        }
+
+        if (f.FilePath == null || f.Indicators.Any(i => i.Code == "FILE_MISSING")) return "";
+        var clean = av.FirstOrDefault(c => c.Result == CheckResult.Good);
+        string avName = clean?.Source == Check.Defender ? "Microsoft Defender" : "Ihr Virenschutz";
+        if (f.Checks.Any(c => c.Source == Check.Yara && c.Result == CheckResult.Bad))
+            return clean != null
+                ? $"Teilweise bestätigt: Eine YARA-Regel von Sicherheitsforschern für Schadsoftware passt, {avName} hat aber nichts gefunden. " +
+                  "Das kann ein Fehlalarm der Regel sein – lassen Sie die Datei über „Auf VirusTotal prüfen“ von über 70 Virenscannern beurteilen."
+                : "Teilweise bestätigt: Eine YARA-Regel von Sicherheitsforschern für Schadsoftware passt. Kein Virenschutz hat die Datei bisher geprüft – " +
+                  "klicken Sie auf „Mit Defender scannen“ oder „Auf VirusTotal prüfen“.";
+        if (f.Indicators.Any(i => i.Code == "YARA_MALWARE_SIGNED"))
+            return "Unklar: Eine YARA-Regel für Schadsoftware passt, die Datei ist aber gültig vom Hersteller signiert" +
+                   (clean != null ? $" und {avName} hat nichts gefunden" : "") + ". Das ist meist ein Fehlalarm der Regel. " +
+                   "Sicherheit gibt „Auf VirusTotal prüfen“ – dort sehen Sie auch, ob das Zertifikat bekannt missbraucht wird.";
+        if (av.Any(c => c.Result == CheckResult.Warning))
+            return "Nicht bestätigt: Die Datei liegt in einer Defender-Ausnahme, Ihr Virenschutz sieht sie sich also nie an. " +
+                   "Lassen Sie sie über „Auf VirusTotal prüfen“ beurteilen und überlegen Sie, ob die Ausnahme wirklich nötig ist.";
+        if (clean != null)
+            return $"Nicht bestätigt: {avName} hat die Datei geprüft und nichts gefunden. ScanMe meldet sie nur wegen auffälliger Merkmale – " +
+                   "das ist ein Verdacht, kein Beweis, und oft steckt ein harmloses Programm dahinter. Für eine zweite Meinung: „Auf VirusTotal prüfen“.";
+        return "Nicht bestätigt: Kein Virenschutz hat diese Datei geprüft, die Einstufung beruht nur auf auffälligen Merkmalen. " +
+               "Klicken Sie auf „Mit Defender scannen“ oder „Auf VirusTotal prüfen“.";
+    }
+
+    /// <summary>Ein Virenschutz hat die Datei geprueft und nichts gefunden, und keine YARA-Regel fuer Schadsoftware passt.</summary>
+    private static bool AntivirusFoundNothing(Finding f) =>
+        f.Checks.Any(c => c.IsAntivirus && c.Result == CheckResult.Good)
+        && !f.Checks.Any(c => c.IsAntivirus && c.Result != CheckResult.Good)
+        && !f.Checks.Any(c => c.Source == Check.Yara && c.Result == CheckResult.Bad);
 
     private static string Name(Finding f) =>
         f.FilePath != null ? Path.GetFileName(f.FilePath) : f.Title.Contains(':') ? f.Title[(f.Title.IndexOf(':') + 1)..].Trim() : f.Title;
@@ -141,6 +197,9 @@ public static class PlainLanguage
         {
             case Verdict.Info:
                 return "Nur zur Information – hier besteht keine Gefahr und Sie müssen nichts tun.";
+            case Verdict.Act when AntivirusFoundNothing(f):
+                return $"Hier gibt es deutliche Warnzeichen: {top}. Ihr Virenschutz hat allerdings nichts gefunden – es kann also auch ein Fehlalarm sein. " +
+                       "Die Quarantäne lässt sich jederzeit rückgängig machen.";
             case Verdict.Act:
                 return $"Hier gibt es deutliche Hinweise auf Schadsoftware oder einen Angriff: {top}. Bitte handeln Sie – auch wenn Ihnen der Name bekannt vorkommt, denn Malware tarnt sich gezielt.";
             case Verdict.Check:

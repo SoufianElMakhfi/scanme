@@ -32,7 +32,7 @@ public static class ActionExecutor
                 RemediationKind.RemoveWmiSubscription => RemoveWmi(action.Target!, action.Argument),
                 RemediationKind.RemoveDefenderExclusion => RemoveExclusion(action.Target!, action.Argument!),
                 RemediationKind.RestoreHostsFile => RestoreHosts(action.Target!),
-                RemediationKind.DefenderScanFile => DefenderScan(action.Target!),
+                RemediationKind.DefenderScanFile => DefenderScan(finding, action.Target!),
                 RemediationKind.OpenLocation => OpenLocation(action.Target!),
                 RemediationKind.LookupOnline => LookupOnline(action.Target!),
                 _ => ActionResult.Fail("Unbekannte Aktion."),
@@ -226,12 +226,23 @@ public static class ActionExecutor
         return ActionResult.Ok($"Hosts-Datei zurückgesetzt. Sicherung: {backup}");
     }
 
-    private static ActionResult DefenderScan(string path)
+    /// <summary>Haelt das Ergebnis auch am Fund fest, damit "Wie sicher ist das?" sofort stimmt.</summary>
+    private static ActionResult DefenderScan(Finding finding, string path)
     {
-        string? threat = Antivirus.DefenderCli.ScanFile(path, TimeSpan.FromMinutes(3));
-        return threat != null
-            ? ActionResult.Ok($"Microsoft Defender erkennt: {threat}")
-            : ActionResult.Ok("Microsoft Defender hat keine Bedrohung erkannt.");
+        var r = Antivirus.DefenderCli.Scan(path, TimeSpan.FromMinutes(30));
+        if (r == null) return ActionResult.Fail("Microsoft Defender ist auf diesem PC nicht vorhanden.");
+        if (r.TimedOut) return ActionResult.Fail("Microsoft Defender hat nach 30 Minuten nicht geantwortet – Prüfung abgebrochen.");
+        if (!r.Completed)
+            return ActionResult.Fail($"Microsoft Defender konnte die Datei nicht prüfen (Code 0x{r.FailedHr ?? r.ExitCode:X8}) – vermutlich ist ein anderer Virenschutz aktiv.");
+        if (r.Threat is { } threat)
+        {
+            bool pua = Antivirus.DefenderCli.IsPuaName(threat);
+            finding.Checked(Check.Detection(Check.Defender, threat, pua));
+            finding.AddIndicator("DEFENDER_DETECTED", $"Microsoft Defender erkennt: {threat}", pua ? 45 : 90);
+            return ActionResult.Ok($"Microsoft Defender erkennt: {threat}");
+        }
+        finding.Checked(Check.Defender, CheckResult.Good, "hat die Datei geprüft: keine Bedrohung erkannt");
+        return ActionResult.Ok("Microsoft Defender hat die Datei geprüft und keine Bedrohung erkannt.");
     }
 
     private static ActionResult OpenLocation(string path)

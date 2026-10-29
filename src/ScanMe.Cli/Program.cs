@@ -235,6 +235,8 @@ foreach (var f in report.Findings.Where(f => f.Severity >= minSeverity))
     Console.WriteLine($"[{f.Severity.German().ToUpperInvariant(),-8} {f.Score,3}] {f.Category.German()} – {f.Title}{(f.IsProtected ? "  (Windows-Komponente, geschuetzt)" : "")}");
     Console.ResetColor();
     if (!string.IsNullOrEmpty(f.Description)) Console.WriteLine($"    {f.Description}");
+    if (f.Certainty.Length > 0) Console.WriteLine($"    Wie sicher: {f.Certainty}");
+    foreach (var c in ScanMe.Core.Reporting.FindingText.Ordered(f.Checks)) Console.WriteLine($"      {c.Symbol} {c.Source}: {c.Text}");
     foreach (var ind in f.Indicators.Where(x => x.Weight != 0))
         Console.WriteLine($"      {(ind.Weight > 0 ? "+" : "")}{ind.Weight,3}  {ind.Text}");
     if (!string.IsNullOrEmpty(f.Recommendation)) Console.WriteLine($"    → {f.Recommendation}");

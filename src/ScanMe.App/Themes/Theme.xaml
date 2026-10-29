@@ -196,6 +196,12 @@
         </Setter>
     </Style>
 
+    <!-- Fliesstext wie "Body", aber markier- und kopierbar -->
+    <Style x:Key="SelectableBody" TargetType="TextBox" BasedOn="{StaticResource ReadOnlyText}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
     <!-- ===== ComboBox (dunkel) ===== -->
     <Style TargetType="ComboBox">
         <Setter Property="Foreground" Value="{StaticResource TextBrush}" />

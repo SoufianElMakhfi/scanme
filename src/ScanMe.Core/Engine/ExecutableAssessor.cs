@@ -87,6 +87,20 @@ public static class ExecutableAssessor
                 f.AddIndicator("SIG_INVALID", $"Ungültige Signatur: {info.SignatureStatusText}", severe ? 60 : 40);
                 break;
         }
+        f.Checked(Check.Signature, info.Signature switch
+        {
+            SignatureState.Valid => CheckResult.Good,
+            SignatureState.Invalid => CheckResult.Bad,
+            _ => CheckResult.Neutral,
+        }, info.Signature switch
+        {
+            SignatureState.Valid when info.IsWindowsComponent => "Bestandteil von Windows, von Microsoft signiert",
+            SignatureState.Valid => $"gültig – der Hersteller „{info.Signer}“ hat die Datei signiert, sie wurde seitdem nicht verändert",
+            SignatureState.Invalid => $"ungültig: {info.SignatureStatusText}",
+            SignatureState.Unknown => "konnte nicht geprüft werden",
+            _ when !IsBinary(fileName) => "keine – bei Skripten und Verknüpfungen üblich",
+            _ => "keine – bei kleinen Tools, Spielen und Open-Source-Programmen üblich, allein kein Hinweis auf Schadsoftware",
+        });
 
         // --- Spielebibliotheken: Spiele sind oft unsigniert und verbinden sich ins Internet – das ist normal ---
         bool game = IsGameLibrary(info.Path);
