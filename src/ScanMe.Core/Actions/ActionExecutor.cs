@@ -228,7 +228,7 @@ public static class ActionExecutor
 
     private static ActionResult DefenderScan(string path)
     {
-        string? threat = MalwareScanner.DefenderScanFile(path, TimeSpan.FromMinutes(3));
+        string? threat = Antivirus.DefenderCli.ScanFile(path, TimeSpan.FromMinutes(3));
         return threat != null
             ? ActionResult.Ok($"Microsoft Defender erkennt: {threat}")
             : ActionResult.Ok("Microsoft Defender hat keine Bedrohung erkannt.");

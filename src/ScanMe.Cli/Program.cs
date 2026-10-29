@@ -47,7 +47,7 @@ for (int i = 0; i < args.Length; i++)
                   --only a,b         Nur bestimmte Scanner (IDs siehe unten)
                   --all              Auch Info-Funde anzeigen
                   --json <datei>     Ergebnis als JSON speichern
-                  --no-defender      Microsoft Defender nicht einbeziehen
+                  --no-defender      Installierten Virenschutz (Defender, AMSI) nicht einbeziehen
                   --self-update      Auf die neueste Version aktualisieren (geprüft, siehe README)
 
                 Exit-Code: 0 = keine hohen/kritischen Funde · 1 = hohe Funde · 2 = kritische Funde

@@ -8,7 +8,7 @@
             <Border Style="{StaticResource Card}" Margin="0,18,0,0">
                 <StackPanel>
                     <TextBlock Text="Scan" Style="{StaticResource H2}" Margin="0,0,0,10" />
-                    <CheckBox Content="Verdächtige Dateien zusätzlich von Microsoft Defender prüfen lassen" IsChecked="{Binding UseDefender}" />
+                    <CheckBox Content="Installierten Virenschutz einbeziehen (Defender prüft Downloads, Desktop, Temp, AppData; andere Virenschutzprogramme über AMSI)" IsChecked="{Binding UseDefender}" />
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <TextBlock Text="Ereignisprotokolle auswerten für die letzten" VerticalAlignment="Center" />
                         <TextBox Width="60" Margin="8,0" Text="{Binding EventLogDays}" />
